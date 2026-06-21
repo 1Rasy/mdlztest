@@ -21,6 +21,8 @@ const frame=document.getElementById('page');
 frame.src=cfg.src;
 frame.addEventListener('load',()=>{
   const d=frame.contentDocument;
+  const oldAlert=frame.contentWindow.alert.bind(frame.contentWindow);
+  frame.contentWindow.alert=t=>oldAlert(String(t).replace(/车销/g,''));
   const style=d.createElement('style');
   style.textContent=`
     :root{--primary:#4A154B;--bg:#f4f2f5;--card:#fff;--text:#1f1121;--muted:#756676;--line:#e7e1e8;--danger:#dc2626}
