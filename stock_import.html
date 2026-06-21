@@ -19,7 +19,7 @@
       background: var(--bg-main); 
       color: var(--text-main); 
     }
-    .container { max-width: 600px; margin: 40px auto; }
+    .container { max-width: 680px; margin: 40px auto; }
     .card { 
       background: var(--card-bg); 
       padding: 35px; 
@@ -67,6 +67,17 @@
       display: none; 
       text-align: left;
     }
+    .fixed-map {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      background: #fafafa;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.75;
+    }
+    .fixed-map strong { color: var(--primary); }
     .btn-submit { 
       margin-top: 20px; 
       width: 100%; 
@@ -96,6 +107,12 @@
       <div id="uploadPrompt" style="font-size: 13px; color: #6c757d;">点击选择文件，或将原始 Excel 文件拖拽至此处</div>
       <input type="file" id="excelFile" class="file-input" accept=".xlsx, .xls">
     </div>
+
+    <div class="fixed-map">
+      <strong>固定列导入规则：</strong><br>
+      A单号，B单据编号，C制单日期，D客户编号，E客户，F商品编号，G条形码，H商品名称，I包装，J件，K金额/1，L散，M单位/2，N单价/3，O折扣，P应收款。<br>
+      系统会跳过第一行表头，从第二行开始按固定列位读取，不再根据表头名称识别。
+    </div>
     
     <div id="fileInfo" class="file-info">已选择文件: <span id="fileName"></span></div>
     
@@ -113,28 +130,29 @@
 
   window.mySupabaseInstance = (SUPABASE_URL && SUPABASE_KEY) ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-  const SAFE_FIELD_TRANSLATOR = {
-    "单号": "order_no", "单据编号": "doc_no", "制单日期": "bill_date",
-    "客户编号": "customer_code", "客户": "customer_name", "商品编号": "sku_code",
-    "条形码": "barcode", "商品名称": "product_name", "包装": "package_reg",
-    "件": "qty_piece", "1": "amount_piece", "散": "qty_scatter",
-    "2": "unit", "3": "unit_price", "折扣": "discount", "应收款": "total_amount"
+  const FIXED_IMPORT_COLUMNS = {
+    order_no: 0,
+    doc_no: 1,
+    bill_date: 2,
+    customer_code: 3,
+    customer_name: 4,
+    sku_code: 5,
+    barcode: 6,
+    product_name: 7,
+    package_reg: 8,
+    qty_piece: 9,
+    amount_piece: 10,
+    qty_scatter: 11,
+    unit: 12,
+    unit_price: 13,
+    discount: 14,
+    total_amount: 15
   };
 
   const NUMERIC_FIELDS = [
     "package_reg", "qty_piece", "amount_piece", "qty_scatter", 
     "unit_price", "discount", "total_amount"
   ];
-
-  const FIXED_IMPORT_COLUMNS = {
-    order_no: 0,
-    barcode: 6
-  };
-
-  function normalizeFixedCell(value) {
-    if (value === undefined || value === null) return "";
-    return String(value).trim();
-  }
 
   const SPECIAL_PRODUCTS_MAP = {
     "6924513908032": true,
@@ -187,6 +205,57 @@
     statusMsg.classList.add('hide');
   }
 
+  function normalizeCell(value) {
+    if (value === undefined || value === null) return "";
+    return String(value).trim();
+  }
+
+  function normalizeNumber(value) {
+    const text = normalizeCell(value).replace(/,/g, "");
+    if (text === "") return 0;
+    const num = Number(text);
+    return Number.isFinite(num) ? num : 0;
+  }
+
+  function getCell(rowCells, fieldName) {
+    return normalizeCell(rowCells[FIXED_IMPORT_COLUMNS[fieldName]]);
+  }
+
+  function getNumberCell(rowCells, fieldName) {
+    return normalizeNumber(rowCells[FIXED_IMPORT_COLUMNS[fieldName]]);
+  }
+
+  function buildPayloadFromFixedColumns(rowCells, batchId) {
+    const newRow = {
+      import_batch_id: batchId,
+      is_processed: false,
+      order_no: getCell(rowCells, 'order_no'),
+      doc_no: getCell(rowCells, 'doc_no'),
+      bill_date: getCell(rowCells, 'bill_date'),
+      customer_code: getCell(rowCells, 'customer_code'),
+      customer_name: getCell(rowCells, 'customer_name'),
+      sku_code: getCell(rowCells, 'sku_code'),
+      barcode: getCell(rowCells, 'barcode'),
+      product_name: getCell(rowCells, 'product_name'),
+      package_reg: getNumberCell(rowCells, 'package_reg'),
+      qty_piece: getNumberCell(rowCells, 'qty_piece'),
+      amount_piece: getNumberCell(rowCells, 'amount_piece'),
+      qty_scatter: getNumberCell(rowCells, 'qty_scatter'),
+      unit: getCell(rowCells, 'unit'),
+      unit_price: getNumberCell(rowCells, 'unit_price'),
+      discount: getNumberCell(rowCells, 'discount'),
+      total_amount: getNumberCell(rowCells, 'total_amount')
+    };
+
+    newRow.is_triple_spec_direct = !!SPECIAL_PRODUCTS_MAP[newRow.barcode];
+    return newRow;
+  }
+
+  function isInvalidText(value) {
+    const text = String(value || '').trim().toLowerCase();
+    return !text || text === 'undefined' || text === 'null';
+  }
+
   function startImport() {
     if (!selectedFile || !window.mySupabaseInstance) return;
     
@@ -198,86 +267,42 @@
     reader.onload = async function(e) {
       try {
         const data = new Uint8Array(e.target.result);
-        
-        // 🛠️ 关键修改 1：在读取工作簿时显式配置 cellDates: true
         const workbook = XLSX.read(data, { 
           type: 'array',
           cellDates: true 
         });
-        
-        // 🛠️ 关键修改 2：在转换为 JSON 时指定日期格式化规范
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, {
-          raw: false,
-          dateNF: 'yyyy-mm-dd'
-        });
         const rawRowsByColumn = XLSX.utils.sheet_to_json(worksheet, {
           header: 1,
           raw: false,
           dateNF: 'yyyy-mm-dd'
-        }).slice(1);
-        
-        if (rawRows.length === 0) throw new Error("Excel 未包含有效数据行。");
+        });
 
-        statusMsg.innerText = "正在清洗并过滤重复行...";
+        if (rawRowsByColumn.length <= 1) throw new Error("Excel 未包含有效数据行。");
+
+        statusMsg.innerText = "正在按固定列清洗并过滤重复行...";
 
         const batchId = "BATCH_" + Date.now();
         const seenKeys = new Set();
         const safePayloads = [];
+        const dataRows = rawRowsByColumn.slice(1);
 
-        rawRows.forEach((row, rowIndex) => {
-          let newRow = { import_batch_id: batchId, is_processed: false };
-          let hasValidData = false;
-          const rowCells = rawRowsByColumn[rowIndex] || [];
+        dataRows.forEach((rowCells) => {
+          const newRow = buildPayloadFromFixedColumns(rowCells || [], batchId);
 
-          for (let chineseKey in row) {
-            let cleanKey = chineseKey.replace(/[\s\(\)\（\）\%]/g, "");
-            if (cleanKey.includes("折扣")) cleanKey = "折扣";
-
-            const englishKey = SAFE_FIELD_TRANSLATOR[cleanKey];
-            if (englishKey) {
-              hasValidData = true;
-              let val = row[chineseKey];
-              
-              if (NUMERIC_FIELDS.includes(englishKey)) {
-                if (val === "" || val === undefined || val === null || String(val).trim() === "") {
-                  newRow[englishKey] = 0;
-                } else {
-                  newRow[englishKey] = Number(val);
-                }
-              } else {
-                newRow[englishKey] = (val !== undefined && val !== null) ? String(val).trim() : val;
-              }
-            }
+          if (isInvalidText(newRow.order_no) || isInvalidText(newRow.barcode)) {
+            return;
           }
 
-          newRow.order_no = normalizeFixedCell(rowCells[FIXED_IMPORT_COLUMNS.order_no]);
-          newRow.barcode = normalizeFixedCell(rowCells[FIXED_IMPORT_COLUMNS.barcode]);
-          if (newRow.order_no || newRow.barcode) hasValidData = true;
-          
-          NUMERIC_FIELDS.forEach(numKey => {
-            if (newRow[numKey] === undefined) newRow[numKey] = 0;
-          });
+          const uniqueKey = `${newRow.order_no}_${newRow.barcode}`;
+          if (seenKeys.has(uniqueKey)) return;
 
-          if (newRow.barcode && SPECIAL_PRODUCTS_MAP[newRow.barcode]) {
-            newRow.is_triple_spec_direct = true; 
-          } else {
-            newRow.is_triple_spec_direct = false;
-          }
-
-          if (hasValidData && newRow.order_no && newRow.barcode && newRow.order_no !== "undefined" && newRow.order_no !== "null") {
-            const uniqueKey = `${newRow.order_no}_${newRow.barcode}`;
-            
-            if (seenKeys.has(uniqueKey)) {
-              return; 
-            }
-            seenKeys.add(uniqueKey);
-            safePayloads.push(newRow);
-          }
+          seenKeys.add(uniqueKey);
+          safePayloads.push(newRow);
         });
 
         if (safePayloads.length === 0) {
-          throw new Error("有效行解析为0，请核对固定列：A列单号、G列条形码。");
+          throw new Error("有效行解析为0，请核对固定列：A列单号、G列条形码，并确认第一行是表头、第二行开始是数据。");
         }
 
         statusMsg.innerText = `正在写入数据库 (${safePayloads.length}条)...`;
@@ -296,7 +321,7 @@
       } catch (err) {
         console.error(err);
         statusMsg.innerText = "导入失败";
-        alert(`导入异常: ${err.message || '请检查表结构与字段映射。'}`);
+        alert(`导入异常: ${err.message || '请检查表格列顺序与固定列映射。'}`);
         submitBtn.disabled = false;
       }
     };
