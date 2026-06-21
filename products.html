@@ -11,20 +11,27 @@
     .card { background:var(--card); border-radius:14px; padding:14px; box-shadow:0 4px 14px rgba(74,21,75,.06); }
     .top { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px; }
     h1 { margin:0; font-size:21px; color:var(--primary); }
-    .sub { color:var(--muted); font-size:13px; margin-top:4px; line-height:1.4; }
     .btn { border:1px solid var(--line); background:#fff; color:var(--text); border-radius:9px; padding:9px 12px; font-weight:700; cursor:pointer; }
     .btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
     .btn:disabled { opacity:.55; cursor:not-allowed; }
-    .toolbar { display:grid; grid-template-columns:1fr auto auto; gap:8px; margin:12px 0; align-items:center; }
+    .toolbar { display:grid; grid-template-columns:1fr auto; gap:8px; margin:12px 0; align-items:center; }
     .search { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:9px; font-size:15px; outline:none; }
     .status { font-size:13px; color:var(--muted); margin:8px 0; }
-    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; max-height:calc(100vh - 190px); background:#fff; }
-    table { width:max-content; min-width:100%; border-collapse:separate; border-spacing:0; }
-    th, td { border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:7px; vertical-align:middle; font-size:13px; white-space:nowrap; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; max-height:calc(100vh - 170px); background:#fff; }
+    table { width:100%; min-width:980px; table-layout:fixed; border-collapse:separate; border-spacing:0; }
+    th, td { border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:7px; vertical-align:middle; font-size:13px; white-space:normal; word-break:break-word; }
     th { position:sticky; top:0; z-index:2; background:#fbf9fc; color:var(--primary); text-align:left; font-weight:800; }
-    .th-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:92px; }
-    .th-head .title { display:block; }
-    .filter-btn { border:1px solid #d8d0da; background:#fff; color:var(--muted); border-radius:7px; padding:4px 7px; font-size:12px; font-weight:800; cursor:pointer; }
+    th:nth-child(1), td:nth-child(1) { width:64px; text-align:center; }
+    th:nth-child(2), td:nth-child(2) { width:118px; }
+    th:nth-child(3), td:nth-child(3) { width:180px; }
+    th:nth-child(4), td:nth-child(4) { width:120px; }
+    th:nth-child(5), td:nth-child(5) { width:130px; }
+    th:nth-child(6), td:nth-child(6) { width:130px; }
+    th:nth-child(7), td:nth-child(7), th:nth-child(8), td:nth-child(8), th:nth-child(9), td:nth-child(9) { width:92px; }
+    th:nth-child(10), td:nth-child(10) { width:100px; }
+    .th-head { display:flex; align-items:center; justify-content:space-between; gap:6px; min-width:0; }
+    .th-head .title { display:block; min-width:0; }
+    .filter-btn { flex:0 0 auto; border:1px solid #d8d0da; background:#fff; color:var(--muted); border-radius:7px; padding:4px 7px; font-size:12px; font-weight:800; cursor:pointer; }
     .filter-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
     .filter-panel { position:fixed; z-index:20; display:none; width:min(280px, calc(100vw - 24px)); max-height:360px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 12px 30px rgba(31,17,33,.18); padding:10px; }
     .filter-panel.open { display:block; }
@@ -36,21 +43,16 @@
     .filter-empty { padding:8px; color:var(--muted); }
     .filter-actions { display:flex; justify-content:space-between; gap:8px; margin-top:9px; }
     .filter-actions .btn { padding:7px 10px; font-size:12px; }
-    td input[type="text"], td input[type="number"] { width:100%; min-width:76px; padding:7px; border:1px solid transparent; border-radius:7px; font-size:13px; background:#fafafa; }
+    td input[type="text"], td input[type="number"] { width:100%; min-width:0; padding:7px; border:1px solid transparent; border-radius:7px; font-size:13px; background:#fafafa; }
     td input[type="text"]:focus, td input[type="number"]:focus { outline:none; border-color:var(--primary); background:#fff; }
-    td.name input { min-width:230px; }
-    td.barcode input { min-width:132px; }
-    td.small input { min-width:68px; }
     .dirty { background:#fff7ed !important; border-color:#fdba74 !important; }
-    .save-btn { background:#f0fdf4; color:var(--ok); border:1px solid #bbf7d0; border-radius:8px; padding:7px 10px; font-weight:800; cursor:pointer; }
-    .save-btn:disabled { opacity:.45; cursor:not-allowed; }
     .error { color:var(--danger); font-weight:700; }
     .ok { color:var(--ok); font-weight:700; }
     .pill { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:99px; background:#f4f2f5; }
     @media (max-width: 700px) {
       body { padding:8px; }
       .toolbar { grid-template-columns:1fr; }
-      .table-wrap { max-height:calc(100vh - 235px); }
+      .table-wrap { max-height:calc(100vh - 220px); }
       .filter-panel { max-height:320px; }
     }
   </style>
@@ -58,20 +60,17 @@
 <body>
   <div class="card">
     <div class="top">
-      <div>
-        <h1>商品表管理</h1>
-        <div class="sub">可编辑商品名称、品牌、规格、口味、默认散件价、件装数、盒装数、散件单位和启用状态。点击表头“筛选”按钮，可像 Excel 一样按列勾选过滤。</div>
-      </div>
+      <h1>商品表管理</h1>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" onclick="location.href='index.html'">← 返回首页</button>
-        <button class="btn primary" onclick="loadProducts()">刷新</button>
+        <button class="btn" onclick="loadProducts()">刷新</button>
+        <button class="btn primary" onclick="saveAllDirty()">保存修改</button>
       </div>
     </div>
 
     <div class="toolbar">
       <input id="globalSearch" class="search" placeholder="全局搜索：条码 / 商品名 / 品牌 / 规格 / 口味 / 单位" oninput="applyFilters()">
       <button class="btn" onclick="clearFilters()">清空筛选</button>
-      <button class="btn primary" onclick="saveAllDirty()">保存全部修改</button>
     </div>
 
     <div id="status" class="status">正在加载商品...</div>
@@ -79,7 +78,6 @@
       <table>
         <thead>
           <tr>
-            <th><span class="title">操作</span><button class="btn" style="padding:5px 8px;font-size:12px;" onclick="saveAllDirty()">保存</button></th>
             <th><div class="th-head"><span class="title">启用</span><button id="filterBtn_is_active" class="filter-btn" onclick="toggleFilterPanel(event,'is_active')">筛选</button></div></th>
             <th><div class="th-head"><span class="title">条形码</span><button id="filterBtn_barcode" class="filter-btn" onclick="toggleFilterPanel(event,'barcode')">筛选</button></div></th>
             <th><div class="th-head"><span class="title">商品名称</span><button id="filterBtn_name" class="filter-btn" onclick="toggleFilterPanel(event,'name')">筛选</button></div></th>
@@ -303,8 +301,6 @@ function markDirty(id, field, value) {
 
   const el = document.querySelector(`[data-id="${CSS.escape(String(id))}"][data-field="${field}"]`);
   if (el) el.classList.add('dirty');
-  const btn = document.getElementById('save_' + id);
-  if (btn) btn.disabled = false;
   setStatus(`已修改 ${dirtyMap.size} 条，记得保存。`);
 }
 
@@ -317,8 +313,7 @@ function renderTable() {
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = filtered.map(p => `
     <tr>
-      <td><button id="save_${esc(p.id)}" class="save-btn" disabled onclick="saveRow('${esc(p.id)}')">保存</button></td>
-      <td style="text-align:center;"><input data-id="${esc(p.id)}" data-field="is_active" type="checkbox" ${p.is_active ? 'checked' : ''} onchange="markDirty('${esc(p.id)}','is_active',this.checked)"></td>
+      <td><input data-id="${esc(p.id)}" data-field="is_active" type="checkbox" ${p.is_active ? 'checked' : ''} onchange="markDirty('${esc(p.id)}','is_active',this.checked)"></td>
       <td class="barcode">${renderInput(p,'barcode')}</td>
       <td class="name">${renderInput(p,'name')}</td>
       <td>${renderInput(p,'brand')}</td>
@@ -336,8 +331,6 @@ function renderTable() {
 async function saveRow(id) {
   const patch = dirtyMap.get(String(id));
   if (!patch) return;
-  const btn = document.getElementById('save_' + id);
-  if (btn) { btn.disabled = true; btn.textContent = '保存中'; }
   const cleanPatch = {};
   editableFields.forEach(k => { if (Object.prototype.hasOwnProperty.call(patch, k)) cleanPatch[k] = patch[k]; });
   if (!cleanPatch.unit || String(cleanPatch.unit).trim() === '') cleanPatch.unit = '个';
@@ -346,7 +339,6 @@ async function saveRow(id) {
   if (error) {
     console.error(error);
     setStatus('保存失败：' + error.message, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = '保存'; }
     return;
   }
   const idx = products.findIndex(p => String(p.id) === String(id));
