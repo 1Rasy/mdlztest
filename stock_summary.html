@@ -1,337 +1,46 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>库存管理</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <style>
-    :root { --primary:#4A154B; --bg:#f4f2f5; --card:#fff; --text:#1f1121; --muted:#756676; --line:#e7e1e8; --ok:#16a34a; --danger:#dc2626; --warn:#f59e0b; }
-    * { box-sizing:border-box; }
-    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); padding:12px; -webkit-tap-highlight-color:transparent; }
-    .shell { max-width:1280px; margin:0 auto; }
-    .card { background:var(--card); border-radius:14px; padding:14px; box-shadow:0 4px 14px rgba(74,21,75,.06); margin-bottom:12px; }
-    .top { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
-    h1 { margin:0; font-size:22px; color:var(--primary); }
-    h2 { margin:0 0 10px; font-size:17px; color:var(--primary); }
-    .sub { color:var(--muted); font-size:12px; margin-top:4px; line-height:1.45; }
-    .btn { border:1px solid var(--line); background:#fff; color:var(--text); border-radius:9px; padding:9px 12px; font-weight:700; cursor:pointer; }
-    .btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
-    .btn.warn { background:#fffbeb; color:#92400e; border-color:#fde68a; }
-    .filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
-    .input { padding:10px 11px; border:1px solid var(--line); border-radius:9px; background:#fff; font-size:14px; min-width:220px; }
-    .status { font-size:13px; color:var(--muted); margin-top:8px; white-space:pre-line; line-height:1.5; }
-    .status.hide { display:none; }
-    .error { color:var(--danger); font-weight:700; }
-    .metric-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
-    .metric { border:1px solid var(--line); border-radius:10px; padding:12px; background:#fbf9fc; min-height:82px; }
-    .metric .label { color:var(--muted); font-size:12px; }
-    .metric .value { margin-top:8px; color:var(--primary); font-size:23px; font-weight:800; line-height:1.1; word-break:break-word; }
-    .metric .hint { margin-top:6px; color:var(--muted); font-size:12px; }
-    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff; }
-    table { width:100%; min-width:820px; border-collapse:separate; border-spacing:0; }
-    th, td { border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:8px; vertical-align:middle; font-size:13px; white-space:normal; word-break:break-word; }
-    th { position:sticky; top:0; background:#fbf9fc; color:var(--primary); text-align:left; font-weight:800; z-index:1; }
-    tr.clickable { cursor:pointer; }
-    tr.clickable:hover { background:#fbf9fc; }
-    .amount { font-weight:800; color:var(--primary); }
-    .empty { padding:18px; color:var(--muted); text-align:center; }
-    .pill { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:700; background:#f4f2f5; color:var(--primary); }
-    .pill.warn { background:#fffbeb; color:#92400e; }
-    .detail-row td { background:#fffdf7; padding:0; }
-    .detail-box { padding:12px; }
-    .detail-title { display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
-    .detail-table { min-width:1040px; table-layout:fixed; }
-    .detail-table th, .detail-table td { vertical-align:top; line-height:1.45; padding:9px 10px; }
-    .detail-table th:nth-child(1), .detail-table td:nth-child(1) { width:390px; }
-    .detail-table th:nth-child(2), .detail-table td:nth-child(2) { width:145px; white-space:nowrap; word-break:normal; }
-    .detail-table th:nth-child(3), .detail-table td:nth-child(3) { width:110px; white-space:nowrap; word-break:normal; text-align:right; }
-    .detail-table th:nth-child(4), .detail-table td:nth-child(4) { width:150px; white-space:nowrap; word-break:normal; }
-    .detail-table th:nth-child(5), .detail-table td:nth-child(5), .detail-table th:nth-child(6), .detail-table td:nth-child(6) { width:90px; white-space:nowrap; word-break:normal; text-align:right; }
-    .detail-table th:nth-child(7), .detail-table td:nth-child(7) { width:140px; white-space:nowrap; word-break:normal; }
-    .detail-product { display:block; line-height:1.45; font-weight:800; }
-    .qty-zero { color:#aaa; }
-    .qty-negative { color:var(--danger); font-weight:800; }
-    @media (max-width:900px) { .metric-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
-    @media (max-width:560px) { body { padding:8px; } .metric-grid { grid-template-columns:1fr; } .filters .btn, .input { width:100%; min-width:0; } }
-  </style>
+<meta charset="UTF-8" />
+<title>库存管理</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style>
+:root{--primary:#4A154B;--bg:#f4f2f5;--card:#fff;--text:#1f1121;--muted:#756676;--line:#e7e1e8;--ok:#16a34a;--danger:#dc2626;--warn:#f59e0b}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);padding:12px;-webkit-tap-highlight-color:transparent}.shell{max-width:1280px;margin:0 auto}.card{background:var(--card);border-radius:14px;padding:14px;box-shadow:0 4px 14px rgba(74,21,75,.06);margin-bottom:12px}.top{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}h1{margin:0;font-size:22px;color:var(--primary)}h2{margin:0 0 10px;font-size:17px;color:var(--primary)}.sub{color:var(--muted);font-size:12px;margin-top:4px;line-height:1.45}.btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.input{padding:10px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:14px;min-width:220px}.status{font-size:13px;color:var(--muted);margin-top:8px;white-space:pre-line;line-height:1.5}.status.hide{display:none}.error{color:var(--danger);font-weight:700}.metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbf9fc;min-height:82px}.metric .label{color:var(--muted);font-size:12px}.metric .value{margin-top:8px;color:var(--primary);font-size:23px;font-weight:800;line-height:1.1;word-break:break-word}.metric .hint{margin-top:6px;color:var(--muted);font-size:12px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}table{width:100%;min-width:820px;border-collapse:separate;border-spacing:0}th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:8px;vertical-align:middle;font-size:13px;white-space:normal;word-break:break-word}th{position:sticky;top:0;background:#fbf9fc;color:var(--primary);text-align:left;font-weight:800;z-index:1}tr.clickable{cursor:pointer}tr.clickable:hover{background:#fbf9fc}.amount{font-weight:800;color:var(--primary)}.empty{padding:18px;color:var(--muted);text-align:center}.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#f4f2f5;color:var(--primary)}.pill.warn{background:#fffbeb;color:#92400e}.detail-row td{background:#fffdf7;padding:0}.detail-box{padding:12px}.detail-title{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.detail-table{min-width:1040px;table-layout:fixed}.detail-table th,.detail-table td{vertical-align:top;line-height:1.45;padding:9px 10px}.detail-table th:nth-child(1),.detail-table td:nth-child(1){width:390px}.detail-table th:nth-child(2),.detail-table td:nth-child(2){width:145px;white-space:nowrap;word-break:normal}.detail-table th:nth-child(3),.detail-table td:nth-child(3){width:110px;white-space:nowrap;word-break:normal;text-align:right}.detail-table th:nth-child(4),.detail-table td:nth-child(4){width:150px;white-space:nowrap;word-break:normal}.detail-table th:nth-child(5),.detail-table td:nth-child(5),.detail-table th:nth-child(6),.detail-table td:nth-child(6){width:90px;white-space:nowrap;word-break:normal;text-align:right}.detail-table th:nth-child(7),.detail-table td:nth-child(7){width:140px;white-space:nowrap;word-break:normal}.detail-product{display:block;line-height:1.45;font-weight:800}.qty-zero{color:#aaa}.qty-negative{color:var(--danger);font-weight:800}@media(max-width:560px){body{padding:8px}.metric-grid{grid-template-columns:1fr}.filters .btn,.input{width:100%;min-width:0}}
+</style>
 </head>
 <body>
-  <div class="shell">
-    <div class="card">
-      <div class="top">
-        <div>
-          <h1>库存管理</h1>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn" onclick="location.href='dashboard.html'">返回管理看板</button>
-          <button class="btn" onclick="exportEmployeeStocks()">导出</button>
-          <button class="btn primary" onclick="loadAll()">刷新</button>
-        </div>
-      </div>
-      <div class="filters">
-        <input id="searchInput" class="input" placeholder="搜索员工/工号/商品/条码" oninput="renderAll()">
-        <button class="btn" onclick="clearSearch()">清空搜索</button>
-        <button id="onlyNonZeroBtn" class="btn primary" onclick="toggleNonZero()">只看非零库存</button>
-      </div>
-      <div id="status" class="status">正在加载库存...</div>
-    </div>
-
-    <div class="metric-grid" id="metricGrid"></div>
-
-    <div class="card">
-      <h2>员工库存汇总</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:60px;">展开</th>
-              <th>员工</th>
-              <th style="width:110px;">有库存品项</th>
-              <th style="width:120px;">总散数</th>
-              <th style="width:120px;">负数品项</th>
-              <th style="width:160px;">最近更新时间</th>
-            </tr>
-          </thead>
-          <tbody id="employeeRows"></tbody>
-        </table>
-      </div>
-    </div>
+<div class="shell">
+  <div class="card">
+    <div class="top"><div><h1>库存管理</h1></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn" onclick="location.href='dashboard.html'">返回管理看板</button><button class="btn" onclick="exportEmployeeStocks()">导出</button><button class="btn primary" onclick="loadAll()">刷新</button></div></div>
+    <div class="filters"><input id="searchInput" class="input" placeholder="搜索员工/工号/商品/条码" oninput="renderAll()"><button class="btn" onclick="clearSearch()">清空搜索</button><button id="onlyNonZeroBtn" class="btn primary" onclick="toggleNonZero()">只看非零库存</button></div>
+    <div id="status" class="status">正在加载库存...</div>
   </div>
-
+  <div class="metric-grid" id="metricGrid"></div>
+  <div class="card"><h2>员工库存汇总</h2><div class="table-wrap"><table><thead><tr><th style="width:60px;">展开</th><th>员工</th><th style="width:110px;">有库存品项</th><th style="width:120px;">总散数</th><th style="width:120px;">负数品项</th><th style="width:160px;">最近更新时间</th></tr></thead><tbody id="employeeRows"></tbody></table></div></div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co";
-const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let employees = [];
-let products = [];
-let stocks = [];
-let employeeMap = new Map();
-let productMap = new Map();
-let expandedEmployee = '';
-let onlyNonZero = true;
-
-function esc(v) {
-  return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-}
-function num(v) { return Number(v || 0); }
-function qty(v) { return num(v).toLocaleString('zh-CN', { maximumFractionDigits:0 }); }
-function formatDate(value) {
-  if (!value) return '-';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value).slice(0, 16);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-function setStatus(msg, cls='') {
-  const el = document.getElementById('status');
-  el.className = 'status ' + cls;
-  el.textContent = msg;
-}
-function hideStatus() {
-  const el = document.getElementById('status');
-  el.className = 'status hide';
-  el.textContent = '';
-}
-function productName(barcode) {
-  const p = productMap.get(String(barcode || ''));
-  if (!p) return String(barcode || '未知条码');
-  return p.name || barcode;
-}
-function productDisplay(barcode) {
-  const p = productMap.get(String(barcode || ''));
-  if (!p) return { title:String(barcode || '未知条码'), pcs_per_case:0, pcs_per_box:0 };
-  const title = p.name || barcode;
-  return { title, pcs_per_case:num(p.pcs_per_case), pcs_per_box:num(p.pcs_per_box) };
-}
-function formatStockUnits(totalPcs, product) {
-  const pcs = num(totalPcs);
-  const specCase = num(product.pcs_per_case) || 0;
-  const specBox = num(product.pcs_per_box) || 0;
-  if (specCase <= 0) return `${qty(pcs)}散`;
-  const sign = pcs < 0 ? '-' : '';
-  let rest = Math.abs(pcs);
-  const cases = Math.floor(rest / specCase);
-  rest = rest % specCase;
-  if (specBox > 0) {
-    const boxes = Math.floor(rest / specBox);
-    const loose = rest % specBox;
-    return `${sign}${cases}件 ${boxes}盒 ${loose}散`;
-  }
-  return `${sign}${cases}件 ${rest}散`;
-}
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  renderAll();
-}
-function toggleNonZero() {
-  onlyNonZero = !onlyNonZero;
-  document.getElementById('onlyNonZeroBtn').classList.toggle('primary', onlyNonZero);
-  document.getElementById('onlyNonZeroBtn').textContent = onlyNonZero ? '只看非零库存' : '显示零库存行';
-  renderAll();
-}
-function toggleExpand(code) {
-  expandedEmployee = expandedEmployee === code ? '' : code;
-  renderAll();
-}
-function buildRows() {
-  const search = String(document.getElementById('searchInput').value || '').trim().toLowerCase();
-  const grouped = new Map();
-
-  stocks.forEach(st => {
-    const code = String(st.employee_code || '');
-    const barcode = String(st.product_barcode || '');
-    const amount = num(st.qty);
-    if (onlyNonZero && amount === 0) return;
-    const emp = employeeMap.get(code) || { employee_code: code, name: '' };
-    const prod = productDisplay(barcode);
-    const haystack = [code, emp.name, barcode, prod.title].join(' ').toLowerCase();
-    if (search && !haystack.includes(search)) return;
-
-    if (!grouped.has(code)) {
-      grouped.set(code, {
-        employee_code: code,
-        name: emp.name || '',
-        is_active: emp.is_active !== false,
-        itemCount: 0,
-        negativeCount: 0,
-        totalQty: 0,
-        lastUpdated: '',
-        items: []
-      });
-    }
-    const row = grouped.get(code);
-    row.itemCount += 1;
-    row.totalQty += amount;
-    if (amount < 0) row.negativeCount += 1;
-    if (!row.lastUpdated || String(st.updated_at || '') > String(row.lastUpdated)) row.lastUpdated = st.updated_at || '';
-    row.items.push({ ...st, product: prod, qty:num(st.qty) });
-  });
-
-  return Array.from(grouped.values()).map(row => {
-    row.items.sort((a, b) => Math.abs(b.qty) - Math.abs(a.qty) || String(a.product_barcode).localeCompare(String(b.product_barcode), 'zh-CN', { numeric:true }));
-    return row;
-  }).sort((a, b) => b.totalQty - a.totalQty || b.itemCount - a.itemCount || String(a.employee_code).localeCompare(String(b.employee_code), 'zh-CN', { numeric:true }));
-}
-function renderMetrics(rows) {
-  const totalEmployees = new Set(stocks.map(st => String(st.employee_code || '')).filter(Boolean)).size;
-  const negativeRows = stocks.filter(st => num(st.qty) < 0);
-  document.getElementById('metricGrid').innerHTML = `
-    <div class="metric"><div class="label">有库存员工</div><div class="value">${totalEmployees}</div><div class="hint">当前筛选显示 ${rows.length} 人</div></div>
-    <div class="metric"><div class="label">负数异常</div><div class="value">${negativeRows.length}</div></div>
-  `;
-}
-function renderEmployeeRows(rows) {
-  const tbody = document.getElementById('employeeRows');
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">暂无库存数据</div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = rows.map(row => {
-    const isOpen = expandedEmployee === row.employee_code;
-    const detail = isOpen ? renderDetailRow(row) : '';
-    return `
-      <tr class="clickable" onclick="toggleExpand('${esc(row.employee_code)}')">
-        <td><span class="pill">${isOpen ? '收起' : '展开'}</span></td>
-        <td><strong>${esc(row.name || row.employee_code)}</strong>${row.is_active ? '' : '<div class="sub">已停用</div>'}</td>
-        <td class="amount">${row.itemCount}</td>
-        <td class="amount">${qty(row.totalQty)}</td>
-        <td>${row.negativeCount ? `<span class="pill warn">${row.negativeCount}</span>` : '0'}</td>
-        <td>${esc(formatDate(row.lastUpdated))}</td>
-      </tr>
-      ${detail}
-    `;
-  }).join('');
-}
-function renderDetailRow(row) {
-  return `
-    <tr class="detail-row">
-      <td colspan="6">
-        <div class="detail-box">
-          <div class="detail-title">
-            <strong>${esc(row.name || row.employee_code)} 的库存明细</strong>
-          </div>
-          <div class="table-wrap">
-            <table class="detail-table">
-              <thead>
-                <tr>
-                  <th>商品</th>
-                  <th>条码</th>
-                  <th>库存散数</th>
-                  <th>换算显示</th>
-                  <th>箱规</th>
-                  <th>盒规</th>
-                  <th>更新时间</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${row.items.map(item => {
-                  const cls = item.qty < 0 ? 'qty-negative' : (item.qty === 0 ? 'qty-zero' : 'amount');
-                  return `
-                    <tr>
-                      <td><span class="detail-product">${esc(item.product.title)}</span></td>
-                      <td>${esc(item.product_barcode)}</td>
-                      <td class="${cls}">${qty(item.qty)}</td>
-                      <td>${esc(formatStockUnits(item.qty, item.product))}</td>
-                      <td>${item.product.pcs_per_case || '-'}</td>
-                      <td>${item.product.pcs_per_box || '-'}</td>
-                      <td>${esc(formatDate(item.updated_at))}</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </td>
-    </tr>
-  `;
-}
-function exportEmployeeStocks() {
-  if (!window.XLSX) {
-    alert('Excel 导出组件加载失败，请刷新页面后重试');
-    return;
-  }
-  const rows = buildRows();
-  const data = [['员工名字', '员工号', '商品名', '条码', '库存散数']];
-  rows.forEach(row => {
-    row.items.forEach(item => {
-      data.push([row.name || '', row.employee_code, item.product.title, String(item.product_barcode || ''), item.qty]);
-    });
-  });
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-  worksheet['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 38 }, { wch: 18 }, { wch: 12 }];
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, '库存管理');
-  const stamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(workbook, `库存管理_${stamp}.xlsx`);
-}
-function renderAll() {
-  const rows = buildRows();
-  renderMetrics(rows);
-  renderEmployeeRows(rows);
-  hideStatus();
-}
-async function loadAll() {
-  setStatus('正在加载库存...');
-  const [stockRes, empRes, productRes] = await Promise.all([
-    client.from('van_stocks').select('employee_code, product_barcode, qty, updated_at').order('employee_code', { ascending:true }).limit(20000),
-    client.from('employees').select('employee_code, name, is_active').limit(2000),
-    client.from('products').select('barcode, name, brand, spec, flavor, pcs_per_case, pcs_per_box, is_active').limit(5000)
-  ]);
-  if (stockRes.error) { console.error(stockRes.error); setStatus('库存加载失败：' + stockRes.error.message, 'error'); return; }
-  if (empRes.error) { console.error(empRes.error); setStatus('员工加载失败：' + empRes.error.message, 'error'); return; }
-  if (productRes.error) { console.error(productRes.error); setStatus('商品加载失败：' + productRes.error.message, 'error'); return; }
-
-  stocks = stockRes.data || [];
-  employees = empRes.data || [];
-  products = productRes.data || [];
-  employeeMap = new Map(employees.map(emp => [String(emp.employee_code || ''), emp]));
-  productMap = new Map(products.map(p => [String(p.barcode || ''), p]));
-  renderAll();
-}
-
+const SUPABASE_URL="https://wyjbnnqhiehjccmojbbg.supabase.co";
+const SUPABASE_KEY="sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
+const client=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let employees=[],products=[],stocks=[],employeeMap=new Map(),productMap=new Map(),expandedEmployee='',onlyNonZero=true;
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function num(v){return Number(v||0)}function qty(v){return num(v).toLocaleString('zh-CN',{maximumFractionDigits:0})}
+function formatDate(value){if(!value)return'-';const d=new Date(value);if(Number.isNaN(d.getTime()))return String(value).slice(0,16);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+function setStatus(msg,cls=''){const el=document.getElementById('status');el.className='status '+cls;el.textContent=msg}function hideStatus(){const el=document.getElementById('status');el.className='status hide';el.textContent=''}
+function productSortValue(p){const s=Number(p.sort_order);if(Number.isFinite(s)&&s>0)return s;const i=Number(p.id||0);return Number.isFinite(i)&&i>0?i*10:999999}
+function compareProducts(a,b){const d=productSortValue(a)-productSortValue(b);if(d!==0)return d;return String(a.name||a.barcode||'').localeCompare(String(b.name||b.barcode||''),'zh-CN',{numeric:true})}
+function productDisplay(barcode){const p=productMap.get(String(barcode||''));if(!p)return{title:String(barcode||'未知条码'),pcs_per_case:0,pcs_per_box:0,unit:'个',sort_order:999999};return{title:p.name||barcode,pcs_per_case:num(p.pcs_per_case),pcs_per_box:num(p.pcs_per_box),unit:p.unit||'个',sort_order:num(p.sort_order)||productSortValue(p),id:p.id||0};}
+function formatStockUnits(totalPcs,product){const pcs=num(totalPcs),specCase=num(product.pcs_per_case)||0,specBox=num(product.pcs_per_box)||0,unit=product.unit||'个';if(specCase<=0)return `${qty(pcs)}${unit}`;const sign=pcs<0?'-':'';let rest=Math.abs(pcs);const cases=Math.floor(rest/specCase);rest=rest%specCase;if(specBox>0){const boxes=Math.floor(rest/specBox),loose=rest%specBox;return `${sign}${cases}件 ${boxes}盒 ${loose}${unit}`;}return `${sign}${cases}件 ${rest}${unit}`;}
+function clearSearch(){document.getElementById('searchInput').value='';renderAll()}function toggleNonZero(){onlyNonZero=!onlyNonZero;document.getElementById('onlyNonZeroBtn').classList.toggle('primary',onlyNonZero);document.getElementById('onlyNonZeroBtn').textContent=onlyNonZero?'只看非零库存':'显示零库存行';renderAll()}function toggleExpand(code){expandedEmployee=expandedEmployee===code?'':code;renderAll()}
+function buildRows(){const search=String(document.getElementById('searchInput').value||'').trim().toLowerCase();const grouped=new Map();stocks.forEach(st=>{const code=String(st.employee_code||''),barcode=String(st.product_barcode||''),amount=num(st.qty);if(onlyNonZero&&amount===0)return;const emp=employeeMap.get(code)||{employee_code:code,name:''};const prod=productDisplay(barcode);const haystack=[code,emp.name,barcode,prod.title].join(' ').toLowerCase();if(search&&!haystack.includes(search))return;if(!grouped.has(code))grouped.set(code,{employee_code:code,name:emp.name||'',is_active:emp.is_active!==false,itemCount:0,negativeCount:0,totalQty:0,lastUpdated:'',items:[]});const row=grouped.get(code);row.itemCount+=1;row.totalQty+=amount;if(amount<0)row.negativeCount+=1;if(!row.lastUpdated||String(st.updated_at||'')>String(row.lastUpdated))row.lastUpdated=st.updated_at||'';row.items.push({...st,product:prod,qty:num(st.qty)});});return Array.from(grouped.values()).map(row=>{row.items.sort((a,b)=>a.product.sort_order-b.product.sort_order||String(a.product_barcode).localeCompare(String(b.product_barcode),'zh-CN',{numeric:true}));return row;}).sort((a,b)=>b.totalQty-a.totalQty||b.itemCount-a.itemCount||String(a.employee_code).localeCompare(String(b.employee_code),'zh-CN',{numeric:true}));}
+function renderMetrics(rows){const totalEmployees=new Set(stocks.map(st=>String(st.employee_code||'')).filter(Boolean)).size;const negativeRows=stocks.filter(st=>num(st.qty)<0);document.getElementById('metricGrid').innerHTML=`<div class="metric"><div class="label">有库存员工</div><div class="value">${totalEmployees}</div><div class="hint">当前筛选显示 ${rows.length} 人</div></div><div class="metric"><div class="label">负数异常</div><div class="value">${negativeRows.length}</div></div>`;}
+function renderEmployeeRows(rows){const tbody=document.getElementById('employeeRows');if(!rows.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty">暂无库存数据</div></td></tr>';return;}tbody.innerHTML=rows.map(row=>{const open=expandedEmployee===row.employee_code;return `<tr class="clickable" onclick="toggleExpand('${esc(row.employee_code)}')"><td><span class="pill">${open?'收起':'展开'}</span></td><td><strong>${esc(row.name||row.employee_code)}</strong>${row.is_active?'':'<div class="sub">已停用</div>'}</td><td class="amount">${row.itemCount}</td><td class="amount">${qty(row.totalQty)}</td><td>${row.negativeCount?`<span class="pill warn">${row.negativeCount}</span>`:'0'}</td><td>${esc(formatDate(row.lastUpdated))}</td></tr>${open?renderDetailRow(row):''}`;}).join('')}
+function renderDetailRow(row){return `<tr class="detail-row"><td colspan="6"><div class="detail-box"><div class="detail-title"><strong>${esc(row.name||row.employee_code)} 的库存明细</strong></div><div class="table-wrap"><table class="detail-table"><thead><tr><th>商品</th><th>条码</th><th>库存散数</th><th>换算显示</th><th>箱规</th><th>盒规</th><th>更新时间</th></tr></thead><tbody>${row.items.map(item=>{const cls=item.qty<0?'qty-negative':(item.qty===0?'qty-zero':'amount');return `<tr><td><span class="detail-product">${esc(item.product.title)}</span></td><td>${esc(item.product_barcode)}</td><td class="${cls}">${qty(item.qty)}</td><td>${esc(formatStockUnits(item.qty,item.product))}</td><td>${item.product.pcs_per_case||'-'}</td><td>${item.product.pcs_per_box||'-'}</td><td>${esc(formatDate(item.updated_at))}</td></tr>`;}).join('')}</tbody></table></div></div></td></tr>`;}
+function exportEmployeeStocks(){if(!window.XLSX){alert('Excel 导出组件加载失败，请刷新页面后重试');return;}const rows=buildRows();const data=[['员工名字','员工号','商品名','条码','库存散数']];rows.forEach(row=>row.items.forEach(item=>data.push([row.name||'',row.employee_code,item.product.title,String(item.product_barcode||''),item.qty])));const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:14},{wch:14},{wch:38},{wch:18},{wch:12}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'库存管理');const stamp=new Date().toISOString().slice(0,10);XLSX.writeFile(wb,`库存管理_${stamp}.xlsx`)}
+function renderAll(){const rows=buildRows();renderMetrics(rows);renderEmployeeRows(rows);hideStatus()}
+async function loadAll(){setStatus('正在加载库存...');const[stockRes,empRes,productRes]=await Promise.all([client.from('van_stocks').select('employee_code, product_barcode, qty, updated_at').order('employee_code',{ascending:true}).limit(20000),client.from('employees').select('employee_code, name, is_active').limit(2000),client.from('products').select('id, sort_order, barcode, name, brand, spec, flavor, pcs_per_case, pcs_per_box, unit, is_active').order('sort_order',{ascending:true}).order('id',{ascending:true}).limit(5000)]);if(stockRes.error){setStatus('库存加载失败：'+stockRes.error.message,'error');return}if(empRes.error){setStatus('员工加载失败：'+empRes.error.message,'error');return}if(productRes.error){setStatus('商品加载失败：'+productRes.error.message,'error');return}stocks=stockRes.data||[];employees=empRes.data||[];products=(productRes.data||[]).sort(compareProducts);employeeMap=new Map(employees.map(emp=>[String(emp.employee_code||''),emp]));productMap=new Map(products.map(p=>[String(p.barcode||''),p]));renderAll()}
 loadAll();
 </script>
 </body>
