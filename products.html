@@ -28,7 +28,7 @@
     th:nth-child(5), td:nth-child(5) { width:130px; }
     th:nth-child(6), td:nth-child(6) { width:130px; }
     th:nth-child(7), td:nth-child(7), th:nth-child(8), td:nth-child(8), th:nth-child(9), td:nth-child(9) { width:92px; }
-    th:nth-child(10), td:nth-child(10) { width:100px; }
+    th:nth-child(10), td:nth-child(10) { width:116px; }
     .th-head { display:flex; align-items:center; justify-content:space-between; gap:6px; min-width:0; }
     .th-head .title { display:block; min-width:0; }
     .filter-btn { flex:0 0 auto; border:1px solid #d8d0da; background:#fff; color:var(--muted); border-radius:7px; padding:4px 7px; font-size:12px; font-weight:800; cursor:pointer; }
@@ -51,23 +51,15 @@
     .error { color:var(--danger); font-weight:700; }
     .ok { color:var(--ok); font-weight:700; }
     .pill { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:99px; background:#f4f2f5; }
-    .modal { position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(31,17,33,.35); }
-    .modal.open { display:flex; }
-    .modal-box { width:min(720px, 100%); max-height:calc(100vh - 28px); overflow:auto; background:#fff; border-radius:12px; padding:14px; box-shadow:0 18px 45px rgba(31,17,33,.24); }
-    .modal-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
-    .modal-head h2 { margin:0; font-size:18px; color:var(--primary); }
-    .form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
-    .field { display:flex; flex-direction:column; gap:5px; font-size:13px; font-weight:800; color:var(--text); }
-    .field input { width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:14px; outline:none; }
-    .field input:focus { border-color:var(--primary); }
-    .check-field { flex-direction:row; align-items:center; margin-top:6px; }
-    .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+    .new-row td { background:#fffbeb; }
+    .new-row input { border-color:#facc15 !important; background:#fff !important; }
+    .inline-actions { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
+    .inline-actions .btn { padding:5px 7px; border-radius:7px; font-size:12px; }
     @media (max-width: 700px) {
       body { padding:8px; }
       .toolbar { grid-template-columns:1fr; }
       .table-wrap { max-height:calc(100vh - 220px); }
       .filter-panel { max-height:320px; }
-      .form-grid { grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -78,7 +70,7 @@
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" onclick="location.href='index.html'">← 返回首页</button>
         <button class="btn" onclick="loadProducts()">刷新</button>
-        <button class="btn" onclick="openProductModal()">添加商品</button>
+        <button id="addProductBtn" class="btn" onclick="openInlineProductRow()">添加商品</button>
         <button class="btn primary" onclick="saveAllDirty()">保存修改</button>
       </div>
     </div>
@@ -111,31 +103,6 @@
   </div>
   <div id="filterPanel" class="filter-panel"></div>
 
-  <div id="productModal" class="modal" onclick="if(event.target===this) closeProductModal()">
-    <div class="modal-box">
-      <div class="modal-head">
-        <h2>添加商品</h2>
-        <button class="btn" onclick="closeProductModal()">关闭</button>
-      </div>
-      <div class="form-grid">
-        <label class="field">条形码<input id="new_barcode" autocomplete="off"></label>
-        <label class="field">商品名称<input id="new_name" autocomplete="off"></label>
-        <label class="field">品牌<input id="new_brand" autocomplete="off"></label>
-        <label class="field">规格<input id="new_spec" autocomplete="off"></label>
-        <label class="field">口味/简称<input id="new_flavor" autocomplete="off"></label>
-        <label class="field">默认散件价<input id="new_default_price" type="number" step="0.01" value="0"></label>
-        <label class="field">件装数<input id="new_pcs_per_case" type="number" step="1" value="1"></label>
-        <label class="field">盒装数<input id="new_pcs_per_box" type="number" step="1" value="0"></label>
-        <label class="field">散件单位<input id="new_unit" value="个" autocomplete="off"></label>
-        <label class="field check-field"><input id="new_is_active" type="checkbox" checked> 启用</label>
-      </div>
-      <div class="modal-actions">
-        <button class="btn" onclick="closeProductModal()">取消</button>
-        <button id="createProductBtn" class="btn primary" onclick="createProduct()">添加</button>
-      </div>
-    </div>
-  </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co";
@@ -146,6 +113,8 @@ let products = [];
 let filtered = [];
 let openFilterField = '';
 let filterSearchText = '';
+let showInlineNewProduct = false;
+let creatingProduct = false;
 const dirtyMap = new Map();
 
 const editableFields = ['barcode','name','brand','spec','flavor','default_price','pcs_per_case','pcs_per_box','unit','is_active'];
@@ -180,6 +149,8 @@ function toNumber(id, fallback) {
 async function loadProducts() {
   setStatus('正在加载商品...');
   dirtyMap.clear();
+  showInlineNewProduct = false;
+  updateAddProductButton();
   closeFilterPanel();
   const { data, error } = await client
     .from('products')
@@ -352,8 +323,6 @@ document.addEventListener('click', event => {
 });
 window.addEventListener('resize', closeFilterPanel);
 
-function getRowKey(p) { return String(p.id); }
-
 function markDirty(id, field, value) {
   const original = products.find(p => String(p.id) === String(id));
   if (!original) return;
@@ -375,9 +344,33 @@ function renderInput(p, field, type='text') {
   return `<input data-id="${esc(p.id)}" data-field="${field}" type="${type}" value="${esc(val)}" onchange="markDirty('${esc(p.id)}','${field}',this.value)">`;
 }
 
+function renderNewProductRow() {
+  if (!showInlineNewProduct) return '';
+  return `
+    <tr class="new-row">
+      <td><input id="new_is_active" type="checkbox" checked></td>
+      <td><input id="new_barcode" type="text" autocomplete="off" placeholder="必填"></td>
+      <td><input id="new_name" type="text" autocomplete="off" placeholder="必填"></td>
+      <td><input id="new_brand" type="text" autocomplete="off"></td>
+      <td><input id="new_spec" type="text" autocomplete="off"></td>
+      <td><input id="new_flavor" type="text" autocomplete="off"></td>
+      <td><input id="new_default_price" type="number" step="0.01" value="0"></td>
+      <td><input id="new_pcs_per_case" type="number" step="1" value="1"></td>
+      <td><input id="new_pcs_per_box" type="number" step="1" value="0"></td>
+      <td>
+        <input id="new_unit" type="text" value="个" autocomplete="off">
+        <div class="inline-actions">
+          <button id="createProductBtn" class="btn primary" onclick="createProduct()">提交</button>
+          <button class="btn" onclick="cancelInlineProductRow()">取消</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
 function renderTable() {
   const tbody = document.getElementById('tbody');
-  tbody.innerHTML = filtered.map(p => `
+  const rows = filtered.map(p => `
     <tr>
       <td><input data-id="${esc(p.id)}" data-field="is_active" type="checkbox" ${p.is_active ? 'checked' : ''} onchange="markDirty('${esc(p.id)}','is_active',this.checked)"></td>
       <td class="barcode">${renderInput(p,'barcode')}</td>
@@ -391,23 +384,40 @@ function renderTable() {
       <td>${renderInput(p,'unit')}</td>
     </tr>
   `).join('');
+  tbody.innerHTML = renderNewProductRow() + rows;
+  updateAddProductButton();
   setStatus(`共 ${products.length} 条，当前筛选 ${filtered.length} 条。未保存修改 ${dirtyMap.size} 条。`);
 }
 
-function openProductModal() {
-  closeFilterPanel();
-  ['new_barcode','new_name','new_brand','new_spec','new_flavor'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('new_default_price').value = '0';
-  document.getElementById('new_pcs_per_case').value = '1';
-  document.getElementById('new_pcs_per_box').value = '0';
-  document.getElementById('new_unit').value = '个';
-  document.getElementById('new_is_active').checked = true;
-  document.getElementById('productModal').classList.add('open');
-  setTimeout(() => document.getElementById('new_barcode').focus(), 0);
+function updateAddProductButton() {
+  const btn = document.getElementById('addProductBtn');
+  if (!btn) return;
+  btn.disabled = showInlineNewProduct || creatingProduct;
+  btn.textContent = showInlineNewProduct ? '正在添加' : '添加商品';
 }
 
-function closeProductModal() {
-  document.getElementById('productModal').classList.remove('open');
+function openInlineProductRow() {
+  closeFilterPanel();
+  if (showInlineNewProduct) {
+    const input = document.getElementById('new_barcode');
+    if (input) input.focus();
+    return;
+  }
+  showInlineNewProduct = true;
+  renderTable();
+  setStatus('请在列表最上方填写新商品，条形码和商品名称必填。');
+  setTimeout(() => {
+    const wrap = document.querySelector('.table-wrap');
+    if (wrap) wrap.scrollTop = 0;
+    const input = document.getElementById('new_barcode');
+    if (input) input.focus();
+  }, 0);
+}
+
+function cancelInlineProductRow() {
+  if (creatingProduct) return;
+  showInlineNewProduct = false;
+  renderTable();
 }
 
 async function createProduct() {
@@ -429,24 +439,35 @@ async function createProduct() {
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = '添加中';
+  creatingProduct = true;
+  updateAddProductButton();
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '提交中';
+  }
+
   const { data, error } = await client
     .from('products')
     .insert(payload)
     .select('id, barcode, name, brand, spec, flavor, default_price, pcs_per_case, pcs_per_box, unit, is_active, created_at')
     .single();
-  btn.disabled = false;
-  btn.textContent = '添加';
+
+  creatingProduct = false;
 
   if (error) {
     console.error(error);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '提交';
+    }
+    updateAddProductButton();
     setStatus('新增失败：' + error.message, 'error');
     return;
   }
+
   products.push({ ...data, unit: data.unit || '个' });
   products.sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
-  closeProductModal();
+  showInlineNewProduct = false;
   setStatus('已添加：' + (data.name || data.barcode), 'ok');
   applyFilters();
 }
