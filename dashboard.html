@@ -299,15 +299,15 @@ async function exportOrderExcel() {
     alert('当前筛选没有可导出的开单单据');
     return;
   }
-  const orderIds = orders.map(order => order.id).filter(Boolean);
-  if (!orderIds.length) {
-    alert('当前单据缺少订单ID，无法导出明细');
+  const orderNos = orders.map(order => String(order.order_no || '')).filter(Boolean);
+  if (!orderNos.length) {
+    alert('当前单据缺少订单号，无法导出明细');
     return;
   }
   const itemRes = await client
     .from('sales_order_items')
-    .select('order_id, barcode, price, qty')
-    .in('order_id', orderIds);
+    .select('order_no, barcode, product_name, unit_price, qty')
+    .in('order_no', orderNos);
   if (itemRes.error) {
     console.error(itemRes.error);
     alert('开单明细加载失败：' + itemRes.error.message);
@@ -328,10 +328,10 @@ async function exportOrderExcel() {
     }
     productMap = new Map((productRes.data || []).map(p => [String(p.barcode || ''), p]));
   }
-  const orderMap = new Map(orders.map(order => [String(order.id || ''), order]));
+  const orderMap = new Map(orders.map(order => [String(order.order_no || ''), order]));
   const data = [['开单日期', '员工', '员工号', '门店编号', '门店', '商品名', '条码', '价格', '散数']];
   items.forEach(item => {
-    const order = orderMap.get(String(item.order_id || ''));
+    const order = orderMap.get(String(item.order_no || ''));
     if (!order) return;
     const code = String(order.employee_code || '');
     const emp = dashboardEmployeeMap.get(code);
@@ -343,9 +343,9 @@ async function exportOrderExcel() {
       code,
       String(order.atom_code || ''),
       order.store_name || '',
-      product?.name || barcode,
+      item.product_name || product?.name || barcode,
       barcode,
-      Number(item.price || 0),
+      Number(item.unit_price || 0),
       Number(item.qty || 0)
     ]);
   });
