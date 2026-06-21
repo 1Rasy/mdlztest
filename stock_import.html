@@ -35,7 +35,8 @@
     </div>
     <div class="fixed-map">
       <strong>固定列导入规则：</strong><br>
-      A单号，B单据编号，C制单日期，D客户编号，E客户，F商品编号，G条形码，H商品名称，I包装，J件，K金额/1，L散，M单位/2，N单价/3，O折扣，P应收款。<br>
+      只读取原始 Excel 的 A单号、C制单日期、D客户编号、E客户、G条形码、H商品名称、I包装、J件、L散。<br>
+      其他列会被忽略，不再写入 raw_dealer_outbounds。
     </div>
     <div id="fileInfo" class="file-info">已选择文件: <span id="fileName"></span></div>
     <button id="submitBtn" class="btn-submit" disabled onclick="startImport()">确认导入数据库</button>
@@ -51,8 +52,15 @@ const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
 window.mySupabaseInstance = (SUPABASE_URL && SUPABASE_KEY) ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const FIXED_IMPORT_COLUMNS = {
-  order_no:0, doc_no:1, bill_date:2, customer_code:3, customer_name:4, sku_code:5, barcode:6, product_name:7,
-  package_reg:8, qty_piece:9, amount_piece:10, qty_scatter:11, unit:12, unit_price:13, discount:14, total_amount:15
+  order_no:0,
+  bill_date:2,
+  customer_code:3,
+  customer_name:4,
+  barcode:6,
+  product_name:7,
+  package_reg:8,
+  qty_piece:9,
+  qty_scatter:11
 };
 const SPECIAL_PRODUCTS_MAP = {
   "6924513908032": true, "6924513908001": true, "6924513909244": true,
@@ -122,21 +130,14 @@ function buildPayloadFromFixedColumns(rowCells, batchId, sourceRowNo){
     is_processed: false,
     source_row_no: sourceRowNo,
     order_no: getCell(rowCells, 'order_no'),
-    doc_no: getCell(rowCells, 'doc_no'),
     bill_date: getCell(rowCells, 'bill_date'),
     customer_code: getCell(rowCells, 'customer_code'),
     customer_name: getCell(rowCells, 'customer_name'),
-    sku_code: getCell(rowCells, 'sku_code'),
     barcode: getCell(rowCells, 'barcode'),
     product_name: getCell(rowCells, 'product_name'),
     package_reg: getNumberCell(rowCells, 'package_reg'),
     qty_piece: getNumberCell(rowCells, 'qty_piece'),
-    amount_piece: getNumberCell(rowCells, 'amount_piece'),
-    qty_scatter: getNumberCell(rowCells, 'qty_scatter'),
-    unit: getCell(rowCells, 'unit'),
-    unit_price: getNumberCell(rowCells, 'unit_price'),
-    discount: getNumberCell(rowCells, 'discount'),
-    total_amount: getNumberCell(rowCells, 'total_amount')
+    qty_scatter: getNumberCell(rowCells, 'qty_scatter')
   };
   newRow.is_triple_spec_direct = !!SPECIAL_PRODUCTS_MAP[newRow.barcode];
   return newRow;
@@ -223,12 +224,11 @@ function startImport(){
 
       setStatus(`数据导入完成。\n原始数据 ${totalRows} 行，实际导入 ${safePayloads.length} 行，跳过非车销客户 ${skippedNotMapped} 行。`);
       alert(`导入成功，共处理 ${safePayloads.length} 条车销有效记录。`);
-      fileInfo.style.display = 'none';
-      selectedFile = null;
     } catch (err) {
       console.error(err);
-      setStatus('导入失败：' + (err.message || '请检查表格列顺序、客户编号映射与数据库字段。'), true);
-      alert(`导入异常: ${err.message || '请检查表格列顺序、客户编号映射与数据库字段。'}`);
+      setStatus('导入失败：' + (err.message || err), true);
+      alert('导入失败：' + (err.message || err));
+    } finally {
       submitBtn.disabled = false;
     }
   };
