@@ -27,6 +27,15 @@ assertIncludes(dashboard, ".from('sales_orders')", 'dashboard loads sell-in orde
 assertIncludes(dashboard, ".from('employees')", 'dashboard loads employee names');
 assertIncludes(dashboard, 'employeeRankRows', 'dashboard renders employee ranking');
 assertIncludes(dashboard, 'recentOrderRows', 'dashboard renders recent sell-in orders');
+assertIncludes(dashboard, '.metric-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }', 'dashboard should use four metric cards');
+assert.ok(!dashboard.includes('动销人员'), 'dashboard should not show active seller metric');
+assert.ok(!dashboard.includes('activeSellerCount'), 'dashboard should not compute active seller metric');
+assert.ok(!dashboard.includes('<div class="hint">元</div>'), 'dashboard metric cards should not show small unit hints');
+assert.ok(!dashboard.includes('<div class="hint">有效订单数</div>'), 'dashboard order metric should not show small hint');
+assert.ok(!dashboard.includes('<div class="hint">有卖进的门店</div>'), 'dashboard store metric should not show small hint');
+assert.ok(!dashboard.includes('<div class="hint">元 / 单</div>'), 'dashboard average metric should not show small hint');
+assert.ok(!dashboard.includes('<div class="sub">${esc(row.employee_code)}</div>'), 'employee ranking should not show employee code subtitle');
+assert.ok(!dashboard.includes('<div class="sub">${esc(order.employee_code || \'\')}</div>'), 'recent orders should not show employee code subtitle');
 
 const employees = readHtml('employees.html');
 assert.ok(!employees.includes('sortModeBtn'), 'employees page should not have a sort button');
