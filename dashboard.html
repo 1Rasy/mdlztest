@@ -72,7 +72,7 @@
 
       <div class="nav-grid">
         <button class="nav-btn" onclick="location.href='store_import.html'"><strong>导入门店</strong></button>
-        <div class="nav-btn nav-import-card"><strong>导入库存</strong><div class="import-side-buttons"><button class="import-mini-btn" onclick="location.href='stock_jn.html'">吉能</button><button class="import-mini-btn" onclick="location.href='stock_ct.html'">长涛</button></div></div>
+        <div class="nav-btn nav-import-card"><strong>导入库存</strong><div class="import-side-buttons"><button class="import-mini-btn" onclick="location.href='stock_jn_admin.html?dealer=jn'">吉能</button><button class="import-mini-btn" onclick="location.href='stock_ct_admin.html'">长涛</button></div></div>
         <button class="nav-btn" onclick="location.href='stock_summary.html'"><strong>库存管理</strong></button>
         <button class="nav-btn" onclick="location.href='products.html'"><strong>商品表</strong></button>
         <button class="nav-btn" onclick="location.href='employees.html'"><strong>员工表</strong></button>
@@ -257,14 +257,7 @@ function buildEmployeeRows(orders, employees) {
     const code = String(order.employee_code || '');
     if (!code) return;
     if (!group.has(code)) {
-      group.set(code, {
-        employee_code: code,
-        name: employeeMap.get(code)?.name || '',
-        totalAmount: 0,
-        orderCount: 0,
-        stores: new Set(),
-        lastOrderAt: ''
-      });
+      group.set(code, { employee_code: code, name: employeeMap.get(code)?.name || '', totalAmount: 0, orderCount: 0, stores: new Set(), lastOrderAt: '' });
     }
     const row = group.get(code);
     row.totalAmount += Number(order.total_amount || 0);
@@ -272,20 +265,11 @@ function buildEmployeeRows(orders, employees) {
     if (order.atom_code) row.stores.add(String(order.atom_code));
     if (!row.lastOrderAt || String(order.created_at || '') > String(row.lastOrderAt)) row.lastOrderAt = order.created_at || '';
   });
-  return Array.from(group.values()).map(row => ({
-    ...row,
-    storeCount: row.stores.size,
-    avgOrderAmount: row.orderCount ? row.totalAmount / row.orderCount : 0
-  })).sort((a, b) => b.totalAmount - a.totalAmount || b.orderCount - a.orderCount || String(a.employee_code).localeCompare(String(b.employee_code), 'zh-CN', { numeric:true }));
+  return Array.from(group.values()).map(row => ({ ...row, storeCount: row.stores.size, avgOrderAmount: row.orderCount ? row.totalAmount / row.orderCount : 0 })).sort((a, b) => b.totalAmount - a.totalAmount || b.orderCount - a.orderCount || String(a.employee_code).localeCompare(String(b.employee_code), 'zh-CN', { numeric:true }));
 }
 function buildMetrics(orders) {
   const totalAmount = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
-  return {
-    totalAmount,
-    orderCount: orders.length,
-    storeCount: new Set(orders.map(order => String(order.atom_code || '')).filter(Boolean)).size,
-    avgOrderAmount: orders.length ? totalAmount / orders.length : 0
-  };
+  return { totalAmount, orderCount: orders.length, storeCount: new Set(orders.map(order => String(order.atom_code || '')).filter(Boolean)).size, avgOrderAmount: orders.length ? totalAmount / orders.length : 0 };
 }
 function renderDashboard() {
   renderEmployeeFilter();
@@ -295,42 +279,19 @@ function renderDashboard() {
   hideStatus();
 }
 async function exportOrderExcel() {
-  if (!window.XLSX) {
-    alert('Excel 导出组件加载失败，请刷新页面后重试');
-    return;
-  }
+  if (!window.XLSX) { alert('Excel 导出组件加载失败，请刷新页面后重试'); return; }
   const orders = getFilteredOrders();
-  if (!orders.length) {
-    alert('当前筛选没有可导出的开单单据');
-    return;
-  }
+  if (!orders.length) { alert('当前筛选没有可导出的开单单据'); return; }
   const orderNos = orders.map(order => String(order.order_no || '')).filter(Boolean);
-  if (!orderNos.length) {
-    alert('当前单据缺少订单号，无法导出明细');
-    return;
-  }
-  const itemRes = await client
-    .from('sales_order_items')
-    .select('order_no, barcode, product_name, unit_price, qty')
-    .in('order_no', orderNos);
-  if (itemRes.error) {
-    console.error(itemRes.error);
-    alert('开单明细加载失败：' + itemRes.error.message);
-    return;
-  }
+  if (!orderNos.length) { alert('当前单据缺少订单号，无法导出明细'); return; }
+  const itemRes = await client.from('sales_order_items').select('order_no, barcode, product_name, unit_price, qty').in('order_no', orderNos);
+  if (itemRes.error) { console.error(itemRes.error); alert('开单明细加载失败：' + itemRes.error.message); return; }
   const items = itemRes.data || [];
   const barcodes = Array.from(new Set(items.map(item => String(item.barcode || '')).filter(Boolean)));
   let productMap = new Map();
   if (barcodes.length) {
-    const productRes = await client
-      .from('products')
-      .select('barcode, name')
-      .in('barcode', barcodes);
-    if (productRes.error) {
-      console.error(productRes.error);
-      alert('商品资料加载失败：' + productRes.error.message);
-      return;
-    }
+    const productRes = await client.from('products').select('barcode, name').in('barcode', barcodes);
+    if (productRes.error) { console.error(productRes.error); alert('商品资料加载失败：' + productRes.error.message); return; }
     productMap = new Map((productRes.data || []).map(p => [String(p.barcode || ''), p]));
   }
   const orderMap = new Map(orders.map(order => [String(order.order_no || ''), order]));
@@ -342,22 +303,9 @@ async function exportOrderExcel() {
     const emp = dashboardEmployeeMap.get(code);
     const barcode = String(item.barcode || '');
     const product = productMap.get(barcode);
-    data.push([
-      formatDateOnly(order.created_at),
-      emp?.name || code,
-      code,
-      String(order.atom_code || ''),
-      order.store_name || '',
-      item.product_name || product?.name || barcode,
-      barcode,
-      Number(item.unit_price || 0),
-      Number(item.qty || 0)
-    ]);
+    data.push([formatDateOnly(order.created_at), emp?.name || code, code, String(order.atom_code || ''), order.store_name || '', item.product_name || product?.name || barcode, barcode, Number(item.unit_price || 0), Number(item.qty || 0)]);
   });
-  if (data.length === 1) {
-    alert('当前筛选没有开单明细可导出');
-    return;
-  }
+  if (data.length === 1) { alert('当前筛选没有开单明细可导出'); return; }
   const worksheet = XLSX.utils.aoa_to_sheet(data);
   worksheet['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 38 }, { wch: 18 }, { wch: 10 }, { wch: 10 }];
   const workbook = XLSX.utils.book_new();
@@ -369,35 +317,17 @@ async function loadDashboard() {
   setStatus('正在加载看板...');
   const start = getStartDate();
   const end = getEndDate();
-  let orderQuery = client
-    .from('sales_orders')
-    .select('id, order_no, created_at, employee_code, atom_code, store_name, total_amount, status')
-    .order('created_at', { ascending:false })
-    .limit(2000);
+  let orderQuery = client.from('sales_orders').select('id, order_no, created_at, employee_code, atom_code, store_name, total_amount, status').order('created_at', { ascending:false }).limit(2000);
   if (start) orderQuery = orderQuery.gte('created_at', start.toISOString());
   if (end) orderQuery = orderQuery.lte('created_at', end.toISOString());
-
-  const [ordersRes, employeesRes] = await Promise.all([
-    orderQuery,
-    client.from('employees').select('employee_code, name, is_active')
-  ]);
-  if (ordersRes.error) {
-    console.error(ordersRes.error);
-    setStatus('卖进数据加载失败：' + ordersRes.error.message, 'error');
-    return;
-  }
-  if (employeesRes.error) {
-    console.error(employeesRes.error);
-    setStatus('员工数据加载失败：' + employeesRes.error.message, 'error');
-    return;
-  }
-
+  const [ordersRes, employeesRes] = await Promise.all([orderQuery, client.from('employees').select('employee_code, name, is_active')]);
+  if (ordersRes.error) { console.error(ordersRes.error); setStatus('卖进数据加载失败：' + ordersRes.error.message, 'error'); return; }
+  if (employeesRes.error) { console.error(employeesRes.error); setStatus('员工数据加载失败：' + employeesRes.error.message, 'error'); return; }
   dashboardOrders = ordersRes.data || [];
   dashboardEmployees = employeesRes.data || [];
   dashboardEmployeeMap = new Map(dashboardEmployees.map(emp => [String(emp.employee_code || ''), emp]));
   renderDashboard();
 }
-
 loadDashboard();
 </script>
 </body>
