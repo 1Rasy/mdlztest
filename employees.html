@@ -90,6 +90,10 @@ function setStatus(msg, cls='') {
 }
 function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function getTrimmed(id) { return document.getElementById(id).value.trim(); }
+function isDuplicateEmployeeError(error) {
+  const text = [error && error.message, error && error.details, error && error.hint, error && error.code].filter(Boolean).join(' ');
+  return text.includes('employees_employee_code_key') || text.includes('duplicate key value') || text.includes('23505');
+}
 
 async function loadEmployees() {
   setStatus('正在加载员工...');
@@ -217,7 +221,11 @@ async function createEmployee() {
     console.error(error);
     if (btn) { btn.disabled = false; btn.textContent = '提交'; }
     updateAddEmployeeButton();
-    setStatus('新增失败：' + error.message, 'error');
+    if (isDuplicateEmployeeError(error)) {
+      setStatus(`新增失败：员工工号「${payload.employee_code}」已存在。`, 'error');
+    } else {
+      setStatus('新增失败：' + error.message, 'error');
+    }
     return;
   }
   employees.push({ ...data, is_active: data.is_active !== false });
@@ -247,7 +255,11 @@ async function saveRow(id) {
     .single();
   if (error) {
     console.error(error);
-    setStatus('保存失败：' + error.message, 'error');
+    if (isDuplicateEmployeeError(error)) {
+      setStatus('保存失败：员工工号已存在，不能改成重复工号。', 'error');
+    } else {
+      setStatus('保存失败：' + error.message, 'error');
+    }
     return false;
   }
   const idx = employees.findIndex(e => String(e.id) === String(id));
