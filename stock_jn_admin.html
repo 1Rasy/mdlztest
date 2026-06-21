@@ -2,17 +2,23 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>吉能库存导入</title>
+<title>库存导入</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 html,body{margin:0;width:100%;height:100%;background:#f4f2f5}iframe{display:block;width:100%;height:100vh;border:0;visibility:hidden;background:#f4f2f5}
 </style>
 </head>
 <body>
-<iframe id="page" src="stock_jn.html"></iframe>
+<iframe id="page"></iframe>
 <script>
+const dealer=new URLSearchParams(location.search).get('dealer')==='ct'?'ct':'jn';
+const cfg={
+  jn:{name:'吉能库存导入',src:'stock_jn.html',fixed:'A单号、C制单日期、D客户编号、E客户、G条形码、H商品名称、I包装、J件、L散'},
+  ct:{name:'长涛库存导入',src:'stock_'+dealer+'.html',fixed:'A制单日期、C商品名称、D包装、F件、G散、Q客户编号、R客户名称、X单号、AA条形码'}
+}[dealer];
+document.title=cfg.name;
 const frame=document.getElementById('page');
-const fixed='A单号、C制单日期、D客户编号、E客户、G条形码、H商品名称、I包装、J件、L散';
+frame.src=cfg.src;
 frame.addEventListener('load',()=>{
   const d=frame.contentDocument;
   const style=d.createElement('style');
@@ -34,10 +40,10 @@ frame.addEventListener('load',()=>{
   const back=d.querySelector('.back');
   if(back){back.textContent='返回管理后台';back.href='dashboard.html';back.onclick=e=>{e.preventDefault();parent.location.href='dashboard.html'}}
   const title=d.querySelector('h2');
-  if(title)title.textContent='吉能库存导入';
+  if(title)title.textContent=cfg.name;
   d.querySelectorAll('.sub').forEach(el=>el.remove());
   const map=d.querySelector('.map');
-  if(map)map.innerHTML='<strong>固定列：</strong>'+fixed;
+  if(map)map.innerHTML='<strong>固定列：</strong>'+cfg.fixed;
   frame.style.visibility='visible';
 });
 </script>
