@@ -36,7 +36,7 @@
     <div class="fixed-map">
       <strong>固定列导入规则：</strong><br>
       只读取原始 Excel 的 A单号、C制单日期、D客户编号、E客户、G条形码、H商品名称、I包装、J件、L散。<br>
-      其他列会被忽略，不再写入 raw_dealer_outbounds。
+      其他列会被忽略，不再写入 raw_dealer_outbounds。若整行被粘到 A列一个单元格，系统会自动按制表符拆分。
     </div>
     <div id="fileInfo" class="file-info">已选择文件: <span id="fileName"></span></div>
     <button id="submitBtn" class="btn-submit" disabled onclick="startImport()">确认导入数据库</button>
@@ -105,6 +105,19 @@ function getCell(rowCells, fieldName){ return normalizeCell(rowCells[FIXED_IMPOR
 function getNumberCell(rowCells, fieldName){ return normalizeNumber(rowCells[FIXED_IMPORT_COLUMNS[fieldName]]); }
 function safeKeyPart(value){ return normalizeCell(value).replace(/\s+/g, ' ').replace(/[|]/g, '/'); }
 function isInvalidText(value){ const text = String(value || '').trim().toLowerCase(); return !text || text === 'undefined' || text === 'null'; }
+function normalizeRowCells(rowCells){
+  const cells = Array.isArray(rowCells) ? rowCells : [];
+  const firstCell = normalizeCell(cells[0]);
+  const fixedColumnMissing = cells[3] === undefined || cells[6] === undefined;
+  if (firstCell.includes('\t') && (cells.length <= 2 || fixedColumnMissing)) {
+    return firstCell.split('\t');
+  }
+  return cells;
+}
+function describeInvalidRow(rowNo, rowCells, parsedRow){
+  const sample = normalizeRowCells(rowCells || []).slice(0, 8).map(normalizeCell).join(' | ');
+  return `第${rowNo}行：A单号=${parsedRow.order_no || '空'}，D客户编号=${parsedRow.customer_code || '空'}，G条码=${parsedRow.barcode || '空'}；前几列=${sample || '空'}`;
+}
 
 async function loadMappedCustomerWhitelist(){
   setStatus('正在读取客户编号白名单...');
@@ -125,19 +138,20 @@ async function loadMappedCustomerWhitelist(){
 }
 
 function buildPayloadFromFixedColumns(rowCells, batchId, sourceRowNo){
+  const cells = normalizeRowCells(rowCells || []);
   const newRow = {
     import_batch_id: batchId,
     is_processed: false,
     source_row_no: sourceRowNo,
-    order_no: getCell(rowCells, 'order_no'),
-    bill_date: getCell(rowCells, 'bill_date'),
-    customer_code: getCell(rowCells, 'customer_code'),
-    customer_name: getCell(rowCells, 'customer_name'),
-    barcode: getCell(rowCells, 'barcode'),
-    product_name: getCell(rowCells, 'product_name'),
-    package_reg: getNumberCell(rowCells, 'package_reg'),
-    qty_piece: getNumberCell(rowCells, 'qty_piece'),
-    qty_scatter: getNumberCell(rowCells, 'qty_scatter')
+    order_no: getCell(cells, 'order_no'),
+    bill_date: getCell(cells, 'bill_date'),
+    customer_code: getCell(cells, 'customer_code'),
+    customer_name: getCell(cells, 'customer_name'),
+    barcode: getCell(cells, 'barcode'),
+    product_name: getCell(cells, 'product_name'),
+    package_reg: getNumberCell(cells, 'package_reg'),
+    qty_piece: getNumberCell(cells, 'qty_piece'),
+    qty_scatter: getNumberCell(cells, 'qty_scatter')
   };
   newRow.is_triple_spec_direct = !!SPECIAL_PRODUCTS_MAP[newRow.barcode];
   return newRow;
@@ -164,6 +178,7 @@ function buildFilteredPayloads(rawRowsByColumn, whitelist){
   let skippedInvalid = 0;
   let skippedNotMapped = 0;
   let skippedDuplicate = 0;
+  const invalidSamples = [];
 
   dataRows.forEach((rowCells, rowIndex) => {
     const sourceRowNo = rowIndex + 2;
@@ -171,6 +186,7 @@ function buildFilteredPayloads(rawRowsByColumn, whitelist){
 
     if (isInvalidText(newRow.order_no) || isInvalidText(newRow.barcode) || isInvalidText(newRow.customer_code)) {
       skippedInvalid++;
+      if (invalidSamples.length < 5) invalidSamples.push(describeInvalidRow(sourceRowNo, rowCells || [], newRow));
       return;
     }
     if (!whitelist.has(newRow.customer_code)) {
@@ -193,7 +209,7 @@ function buildFilteredPayloads(rawRowsByColumn, whitelist){
     safePayloads.push(newRow);
   });
 
-  return { safePayloads, totalRows: dataRows.length, skippedInvalid, skippedNotMapped, skippedDuplicate };
+  return { safePayloads, totalRows: dataRows.length, skippedInvalid, skippedNotMapped, skippedDuplicate, invalidSamples };
 }
 
 function startImport(){
@@ -213,10 +229,11 @@ function startImport(){
 
       setStatus('正在按客户编号白名单筛选并生成行级唯一标识...');
       const result = buildFilteredPayloads(rawRowsByColumn, whitelist);
-      const { safePayloads, totalRows, skippedInvalid, skippedNotMapped, skippedDuplicate } = result;
+      const { safePayloads, totalRows, skippedInvalid, skippedNotMapped, skippedDuplicate, invalidSamples } = result;
 
       if (safePayloads.length === 0) {
-        throw new Error(`有效行解析为0。原始数据 ${totalRows} 行，未匹配白名单 ${skippedNotMapped} 行，无效行 ${skippedInvalid} 行。请核对 D列客户编号 是否已维护到 dealer_employee_mappings。`);
+        const sampleText = invalidSamples.length ? `\n\n无效行示例：\n${invalidSamples.join('\n')}` : '';
+        throw new Error(`有效行解析为0。原始数据 ${totalRows} 行，未匹配白名单 ${skippedNotMapped} 行，无效行 ${skippedInvalid} 行。请检查 A单号、D客户编号、G条形码 是否在固定列。${sampleText}`);
       }
 
       setStatus(`原始数据 ${totalRows} 行\n白名单命中 ${safePayloads.length} 行\n跳过非车销客户 ${skippedNotMapped} 行\n跳过无效行 ${skippedInvalid} 行\n正在准备分批写入...`);
