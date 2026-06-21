@@ -36,7 +36,6 @@
     <div class="fixed-map">
       <strong>固定列导入规则：</strong><br>
       A单号，B单据编号，C制单日期，D客户编号，E客户，F商品编号，G条形码，H商品名称，I包装，J件，K金额/1，L散，M单位/2，N单价/3，O折扣，P应收款。<br>
-      系统会先读取客户编号白名单，只导入已绑定员工的客户数据；同一张单同一条码出现多次时，会按出现顺序保留多行；写入数据库时每 500 条分批提交。
     </div>
     <div id="fileInfo" class="file-info">已选择文件: <span id="fileName"></span></div>
     <button id="submitBtn" class="btn-submit" disabled onclick="startImport()">确认导入数据库</button>

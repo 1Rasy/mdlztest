@@ -54,3 +54,20 @@ const dataRow = renderTableMatch[1];
 assert.ok(dataRow.indexOf("renderInput(e,'employee_code')") < dataRow.indexOf("renderInput(e,'name')"), 'data row code should be before name');
 assert.ok(dataRow.indexOf("renderInput(e,'name')") < dataRow.indexOf('saveRow'), 'data row actions should be after name');
 assert.ok(dataRow.indexOf('saveRow') < dataRow.indexOf('data-field="is_active"'), 'data row active checkbox should be rightmost');
+
+const stockImport = readHtml('stock_import.html');
+const storeImport = readHtml('store_import.html');
+for (const [name, html] of [['stock_import.html', stockImport], ['store_import.html', storeImport]]) {
+  assertIncludes(html, '--primary:#4A154B', `${name} should use the stock import primary color`);
+  assertIncludes(html, 'class="container"', `${name} should use the shared import container`);
+  assertIncludes(html, 'class="card"', `${name} should use the shared import card`);
+  assertIncludes(html, 'class="upload-box"', `${name} should use the shared upload box`);
+  assertIncludes(html, 'class="btn-submit"', `${name} should use the shared submit button`);
+  assert.ok(!html.includes('数据清洗'), `${name} should not mention data cleaning`);
+  assert.ok(!html.includes('差集'), `${name} should not mention set-difference import`);
+  assert.ok(!html.includes('覆盖'), `${name} should not mention overwrite behavior in visible copy`);
+}
+assertIncludes(stockImport, 'fixed-map', 'stock import should keep its fixed-column rule block');
+assertIncludes(stockImport, 'A单号', 'stock import should keep A-P import rules');
+assertIncludes(stockImport, 'P应收款', 'stock import should keep A-P import rules');
+assert.ok(!storeImport.includes('fixed-map'), 'store import should not show stock fixed-column rules');
