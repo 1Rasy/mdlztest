@@ -27,6 +27,7 @@
     .employee-chip.active { background:var(--primary); color:#fff; border-color:var(--primary); }
     .date-input { padding:9px 10px; border:1px solid var(--line); border-radius:9px; background:#fff; font-size:14px; }
     .status { font-size:13px; color:var(--muted); margin-top:8px; }
+    .status.hide { display:none; }
     .error { color:var(--danger); font-weight:700; }
     .ok { color:var(--ok); font-weight:700; }
     .metric-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
@@ -79,7 +80,10 @@
           <h2>卖进数据</h2>
           <div class="sub">默认看本月，可切换今天、近 7 天或全部历史。</div>
         </div>
-        <button class="btn" onclick="loadDashboard()">刷新</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn" onclick="exportOrderExcel()">导出开单单据</button>
+          <button class="btn" onclick="loadDashboard()">刷新</button>
+        </div>
       </div>
       <div class="filters">
         <button id="range_today" class="btn" onclick="setRange('today')">今天</button>
@@ -116,6 +120,7 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
@@ -138,6 +143,12 @@ function formatDate(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
   return `${d.getMonth() + 1}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+function formatDateTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 function getStartDate() {
   const now = new Date();
@@ -165,6 +176,11 @@ function setStatus(msg, cls='') {
   el.className = 'status ' + cls;
   el.textContent = msg;
 }
+function hideStatus() {
+  const el = document.getElementById('status');
+  el.className = 'status hide';
+  el.textContent = '';
+}
 function setRange(range) {
   currentRange = range;
   ['today','7d','month','all'].forEach(key => {
@@ -182,6 +198,9 @@ function setEmployeeFilter(code) {
 function filterOrdersByEmployee(orders) {
   if (!selectedEmployeeCode) return orders;
   return orders.filter(order => String(order.employee_code || '') === selectedEmployeeCode);
+}
+function getFilteredOrders() {
+  return filterOrdersByEmployee(dashboardOrders);
 }
 function buildEmployeeOptions(orders, employees) {
   const activeCodes = new Set(orders.map(order => String(order.employee_code || '')).filter(Boolean));
@@ -265,10 +284,38 @@ function buildMetrics(orders) {
 }
 function renderDashboard() {
   renderEmployeeFilter();
-  const filteredOrders = filterOrdersByEmployee(dashboardOrders);
+  const filteredOrders = getFilteredOrders();
   renderMetrics(buildMetrics(filteredOrders));
   renderEmployeeRank(buildEmployeeRows(filteredOrders, dashboardEmployees));
-  setStatus(`已加载 ${filteredOrders.length} 张卖进单据`, 'ok');
+  hideStatus();
+}
+function exportOrderExcel() {
+  if (!window.XLSX) {
+    alert('Excel 导出组件加载失败，请刷新页面后重试');
+    return;
+  }
+  const orders = getFilteredOrders();
+  const data = [['开单时间', '员工', '员工号', '门店编号', '门店', '单号', '金额', '状态']];
+  orders.forEach(order => {
+    const code = String(order.employee_code || '');
+    const emp = dashboardEmployeeMap.get(code);
+    data.push([
+      formatDateTime(order.created_at),
+      emp?.name || code,
+      code,
+      String(order.atom_code || ''),
+      order.store_name || '',
+      order.order_no || '',
+      Number(order.total_amount || 0),
+      order.status || ''
+    ]);
+  });
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  worksheet['!cols'] = [{ wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 18 }, { wch: 12 }, { wch: 12 }];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '开单单据');
+  const stamp = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(workbook, `开单单据_${stamp}.xlsx`);
 }
 async function loadDashboard() {
   setStatus('正在加载看板...');
