@@ -284,14 +284,14 @@ function exportEmployeeStocks() {
     return;
   }
   const rows = buildRows();
-  const data = [['员工名字', '员工号', '商品名', '库存散数']];
+  const data = [['员工名字', '员工号', '商品名', '条码', '库存散数']];
   rows.forEach(row => {
     row.items.forEach(item => {
-      data.push([row.name || '', row.employee_code, item.product.title, item.qty]);
+      data.push([row.name || '', row.employee_code, item.product.title, String(item.product_barcode || ''), item.qty]);
     });
   });
   const worksheet = XLSX.utils.aoa_to_sheet(data);
-  worksheet['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 38 }, { wch: 12 }];
+  worksheet['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 38 }, { wch: 18 }, { wch: 12 }];
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, '库存管理');
   const stamp = new Date().toISOString().slice(0, 10);
