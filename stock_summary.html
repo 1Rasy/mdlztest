@@ -40,7 +40,15 @@
     .detail-row td { background:#fffdf7; padding:0; }
     .detail-box { padding:12px; }
     .detail-title { display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
-    .detail-table { min-width:820px; }
+    .detail-table { min-width:1040px; table-layout:fixed; }
+    .detail-table th, .detail-table td { vertical-align:top; line-height:1.45; padding:9px 10px; }
+    .detail-table th:nth-child(1), .detail-table td:nth-child(1) { width:390px; }
+    .detail-table th:nth-child(2), .detail-table td:nth-child(2) { width:145px; white-space:nowrap; word-break:normal; }
+    .detail-table th:nth-child(3), .detail-table td:nth-child(3) { width:110px; white-space:nowrap; word-break:normal; text-align:right; }
+    .detail-table th:nth-child(4), .detail-table td:nth-child(4) { width:150px; white-space:nowrap; word-break:normal; }
+    .detail-table th:nth-child(5), .detail-table td:nth-child(5), .detail-table th:nth-child(6), .detail-table td:nth-child(6) { width:90px; white-space:nowrap; word-break:normal; text-align:right; }
+    .detail-table th:nth-child(7), .detail-table td:nth-child(7) { width:140px; white-space:nowrap; word-break:normal; }
+    .detail-product { display:block; line-height:1.45; font-weight:800; }
     .qty-zero { color:#aaa; }
     .qty-negative { color:var(--danger); font-weight:800; }
     @media (max-width:900px) { .metric-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
@@ -247,12 +255,12 @@ function renderDetailRow(row) {
               <thead>
                 <tr>
                   <th>商品</th>
-                  <th style="width:145px;">条码</th>
-                  <th style="width:120px;">库存散数</th>
-                  <th style="width:170px;">换算显示</th>
-                  <th style="width:110px;">箱规</th>
-                  <th style="width:110px;">盒规</th>
-                  <th style="width:150px;">更新时间</th>
+                  <th>条码</th>
+                  <th>库存散数</th>
+                  <th>换算显示</th>
+                  <th>箱规</th>
+                  <th>盒规</th>
+                  <th>更新时间</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,7 +268,7 @@ function renderDetailRow(row) {
                   const cls = item.qty < 0 ? 'qty-negative' : (item.qty === 0 ? 'qty-zero' : 'amount');
                   return `
                     <tr>
-                      <td><strong>${esc(item.product.title)}</strong></td>
+                      <td><span class="detail-product">${esc(item.product.title)}</span></td>
                       <td>${esc(item.product_barcode)}</td>
                       <td class="${cls}">${qty(item.qty)}</td>
                       <td>${esc(formatStockUnits(item.qty, item.product))}</td>
