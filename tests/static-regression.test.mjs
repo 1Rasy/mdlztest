@@ -37,6 +37,13 @@ assertIncludes(dashboard, '全部</button>', 'dashboard employee filter should i
 assertIncludes(dashboard, 'function buildMetrics(orders)', 'dashboard should rebuild metrics from filtered orders');
 assertIncludes(dashboard, '<div class="label">卖进门店数</div>', 'dashboard should label store metric as sell-in store count');
 assertIncludes(dashboard, '<th style="width:110px;">卖进门店数</th>', 'employee ranking should label store column as sell-in store count');
+assertIncludes(dashboard, 'onclick="exportOrderExcel()"', 'dashboard should expose order export button');
+assertIncludes(dashboard, '导出开单单据', 'dashboard order export button should be visible');
+assertIncludes(dashboard, 'function exportOrderExcel()', 'dashboard should implement order export');
+assertIncludes(dashboard, "['开单时间', '员工', '员工号', '门店编号', '门店', '单号', '金额', '状态']", 'dashboard order export should use required headers');
+assertIncludes(dashboard, 'XLSX.writeFile(workbook, `开单单据_${stamp}.xlsx`)', 'dashboard should export real xlsx order files');
+assertIncludes(dashboard, 'hideStatus();', 'dashboard should hide loaded status after rendering');
+assert.ok(!dashboard.includes('已加载 ${filteredOrders.length} 张卖进单据'), 'dashboard should not show green loaded order count');
 assert.ok(!dashboard.includes('employeeSearch'), 'dashboard should not use employee search input');
 assert.ok(!dashboard.includes('placeholder="搜索员工名字"'), 'dashboard should not use employee name search box');
 assert.ok(!dashboard.includes('filterOrdersByEmployeeName'), 'dashboard should not filter by text search');
