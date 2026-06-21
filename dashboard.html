@@ -22,8 +22,10 @@
     .nav-btn strong { display:block; color:var(--primary); font-size:15px; margin-bottom:5px; }
     .nav-btn span { display:block; color:var(--muted); font-size:12px; line-height:1.4; }
     .filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
-    .date-input, .text-input { padding:9px 10px; border:1px solid var(--line); border-radius:9px; background:#fff; font-size:14px; }
-    .text-input { min-width:180px; }
+    .employee-filter { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+    .employee-chip { border:1px solid var(--line); background:#fff; color:var(--text); border-radius:999px; padding:8px 12px; font-weight:800; cursor:pointer; }
+    .employee-chip.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .date-input { padding:9px 10px; border:1px solid var(--line); border-radius:9px; background:#fff; font-size:14px; }
     .status { font-size:13px; color:var(--muted); margin-top:8px; }
     .error { color:var(--danger); font-weight:700; }
     .ok { color:var(--ok); font-weight:700; }
@@ -46,7 +48,9 @@
       body { padding:8px; }
       .nav-grid { grid-template-columns:1fr; }
       .metric-grid { grid-template-columns:1fr; }
-      .filters .btn, .date-input, .text-input { width:100%; }
+      .filters .btn, .date-input { width:100%; }
+      .employee-filter { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .employee-chip { width:100%; }
     }
   </style>
 </head>
@@ -83,8 +87,8 @@
         <button id="range_month" class="btn primary" onclick="setRange('month')">本月</button>
         <button id="range_all" class="btn" onclick="setRange('all')">全部历史</button>
         <input id="customDate" class="date-input" type="date" onchange="setRange('custom')">
-        <input id="employeeSearch" class="text-input" placeholder="搜索员工名字" oninput="renderDashboard()">
       </div>
+      <div id="employeeFilter" class="employee-filter"></div>
       <div id="status" class="status">正在加载看板...</div>
     </div>
 
@@ -118,6 +122,7 @@ const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentRange = 'month';
+let selectedEmployeeCode = '';
 let dashboardOrders = [];
 let dashboardEmployees = [];
 let dashboardEmployeeMap = new Map();
@@ -170,18 +175,30 @@ function setRange(range) {
   if (range !== 'custom') document.getElementById('customDate').value = '';
   loadDashboard();
 }
-function getEmployeeSearch() {
-  return String(document.getElementById('employeeSearch')?.value || '').trim().toLowerCase();
+function setEmployeeFilter(code) {
+  selectedEmployeeCode = String(code || '');
+  renderDashboard();
 }
-function filterOrdersByEmployeeName(orders) {
-  const keyword = getEmployeeSearch();
-  if (!keyword) return orders;
-  return orders.filter(order => {
-    const code = String(order.employee_code || '');
-    const emp = dashboardEmployeeMap.get(code);
-    const name = String(emp?.name || '').toLowerCase();
-    return name.includes(keyword);
-  });
+function filterOrdersByEmployee(orders) {
+  if (!selectedEmployeeCode) return orders;
+  return orders.filter(order => String(order.employee_code || '') === selectedEmployeeCode);
+}
+function buildEmployeeOptions(orders, employees) {
+  const activeCodes = new Set(orders.map(order => String(order.employee_code || '')).filter(Boolean));
+  return (employees || [])
+    .filter(emp => activeCodes.has(String(emp.employee_code || '')))
+    .map(emp => ({ code:String(emp.employee_code || ''), name:emp.name || emp.employee_code || '' }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric:true }));
+}
+function renderEmployeeFilter() {
+  const box = document.getElementById('employeeFilter');
+  const options = buildEmployeeOptions(dashboardOrders, dashboardEmployees);
+  const hasSelected = !selectedEmployeeCode || options.some(emp => emp.code === selectedEmployeeCode);
+  if (!hasSelected) selectedEmployeeCode = '';
+  box.innerHTML = [
+    `<button class="employee-chip ${selectedEmployeeCode ? '' : 'active'}" onclick="setEmployeeFilter('')">全部</button>`,
+    ...options.map(emp => `<button class="employee-chip ${selectedEmployeeCode === emp.code ? 'active' : ''}" onclick="setEmployeeFilter('${esc(emp.code)}')">${esc(emp.name)}</button>`)
+  ].join('');
 }
 function renderMetrics(metrics) {
   document.getElementById('metricGrid').innerHTML = `
@@ -247,7 +264,8 @@ function buildMetrics(orders) {
   };
 }
 function renderDashboard() {
-  const filteredOrders = filterOrdersByEmployeeName(dashboardOrders);
+  renderEmployeeFilter();
+  const filteredOrders = filterOrdersByEmployee(dashboardOrders);
   renderMetrics(buildMetrics(filteredOrders));
   renderEmployeeRank(buildEmployeeRows(filteredOrders, dashboardEmployees));
   setStatus(`已加载 ${filteredOrders.length} 张卖进单据`, 'ok');
