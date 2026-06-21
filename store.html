@@ -498,7 +498,7 @@ async function viewOrderDetail(orderNo, orderDate, fromReport = false) {
           <div class="detail-grid-container">
             <div class="detail-grid-item"><span>实收单项: <strong style="color:var(--primary); font-size:14px;">${Number(it.amount || 0).toFixed(2)}元</strong></span></div>
             <div class="detail-grid-item" style="text-align: right; justify-content: flex-end;"><span>正常销售: <strong>${formattedQty}</strong></span></div>
-            <div class="detail-grid-item"><span>单箱价格: <strong>${Number(it.unit_price || 0).toFixed(2)}元</strong></span></div>
+            <div class="detail-grid-item"><span>散件单价: <strong>${Number(it.unit_price || 0).toFixed(2)}元</strong></span></div>
             <div class="detail-grid-item" style="text-align: right; justify-content: flex-end;">
               <span>搭送赠品: <span style="color:#1890ff; font-weight:bold;">${parsed.giftQty || 0}</span> 袋 | 售后退货: <span style="color:red; font-weight:bold;">${parsed.returnQty || 0}</span> 个 (${parsed.returnHandle === 'RESTORE' ? '良退' : '损耗'})</span>
             </div>
@@ -658,7 +658,7 @@ function calculateLiveOrderAmounts() {
       if(normalSaleBags > 0 || Number(item.gift_qty || 0) > 0 || Number(item.return_qty || 0) > 0) activeSKUCount++;
       const returnBags = Number(item.return_qty || 0);
       let chargedBags = Math.max(0, normalSaleBags - returnBags); 
-      s += chargedBags * (Number(item.price || 0) / p.pcs_per_case); 
+      s += chargedBags * Number(item.price || 0); 
     }
   });
   document.getElementById('liveAmountBanner').innerHTML = `<span style="font-size:15px; color:var(--primary);">💵 <strong>实时预估实收：${s.toFixed(2)} 元</strong></span><br>选购品项：${activeSKUCount} 款`;
@@ -768,7 +768,7 @@ async function submitOrder(){
 
       if(normalSaleBags > 0 || Number(item.gift_qty||0) > 0 || Number(item.return_qty||0) > 0) {
         let chargedBags = Math.max(0, normalSaleBags - Number(item.return_qty || 0));
-        let itemAmount = chargedBags * (Number(item.price || 0) / p.pcs_per_case);
+        let itemAmount = chargedBags * Number(item.price || 0);
         totalBillAmount += itemAmount;
         formattedItemsPayload.push({ barcode: String(id), product_name: String(p.product_name), qty: Number(calculatedDbQty), unit_price: Number(item.price || 0), amount: Number(itemAmount.toFixed(2)), remark: `${Number(item.return_qty || 0)}_${item.return_handle || 'RESTORE'}_GIFT:${Number(item.gift_qty || 0)}` });
       }
