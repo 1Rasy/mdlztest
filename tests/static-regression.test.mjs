@@ -28,31 +28,40 @@ assertIncludes(dashboard, 'recentOrderRows', 'dashboard renders recent sell-in o
 const employees = readHtml('employees.html');
 assert.ok(!employees.includes('sortModeBtn'), 'employees page should not have a sort button');
 assert.ok(!employees.includes('toggleSortMode'), 'employees page should not implement sorting');
+assertIncludes(employees, ".from('dealer_employee_mappings')", 'employees page should load dealer employee mappings');
+assertIncludes(employees, 'customer_code', 'employees page should read mapping customer_code');
+assertIncludes(employees, 'saveMappingsForEmployee', 'employees page should save mapping customer codes');
+assertIncludes(employees, 'renderCustomerCodesInput', 'employees page should render editable customer codes');
+assertIncludes(employees, '经销商客户编号', 'employees page should label customer_code as dealer customer code');
 
 const headerMatch = employees.match(/<thead>[\s\S]*?<tr>([\s\S]*?)<\/tr>/);
 assert.ok(headerMatch, 'employees table should have a header row');
 const headerText = headerMatch[1].replace(/\s+/g, ' ');
-const codeIndex = headerText.indexOf('员工工号');
-const nameIndex = headerText.indexOf('员工姓名');
-const actionIndex = headerText.indexOf('操作');
-const activeIndex = headerText.indexOf('启用');
+const codeIndex = headerText.indexOf('employee-code-col');
+const nameIndex = headerText.indexOf('employee-name-col');
+const customerCodeIndex = headerText.indexOf('customer-code-col');
+const actionIndex = headerText.indexOf('action-col');
+const activeIndex = headerText.indexOf('active-col');
 assert.ok(codeIndex >= 0, 'employee code column should exist');
 assert.ok(nameIndex > codeIndex, 'employee name should be after employee code');
-assert.ok(actionIndex > nameIndex, 'actions should be after employee name');
+assert.ok(customerCodeIndex > nameIndex, 'dealer customer code should be after employee name');
+assert.ok(actionIndex > customerCodeIndex, 'actions should be after dealer customer code');
 assert.ok(activeIndex > actionIndex, 'active column should be the rightmost employee column');
 
 const newRowMatch = employees.match(/function renderNewEmployeeRow\(\)[\s\S]*?return `([\s\S]*?)`;/);
 assert.ok(newRowMatch, 'new employee row renderer should exist');
 const newRow = newRowMatch[1];
 assert.ok(newRow.indexOf('new_employee_code') < newRow.indexOf('new_name'), 'new row code should be before name');
-assert.ok(newRow.indexOf('new_name') < newRow.indexOf('inline-actions'), 'new row actions should be after name');
+assert.ok(newRow.indexOf('new_name') < newRow.indexOf('new_customer_codes'), 'new row dealer customer code should be after name');
+assert.ok(newRow.indexOf('new_customer_codes') < newRow.indexOf('inline-actions'), 'new row actions should be after dealer customer code');
 assert.ok(newRow.indexOf('inline-actions') < newRow.indexOf('new_is_active'), 'new row active checkbox should be rightmost');
 
 const renderTableMatch = employees.match(/function renderTable\(\)[\s\S]*?const rows = filtered\.map\(e => `([\s\S]*?)`\)\.join/);
 assert.ok(renderTableMatch, 'employee table row renderer should exist');
 const dataRow = renderTableMatch[1];
 assert.ok(dataRow.indexOf("renderInput(e,'employee_code')") < dataRow.indexOf("renderInput(e,'name')"), 'data row code should be before name');
-assert.ok(dataRow.indexOf("renderInput(e,'name')") < dataRow.indexOf('saveRow'), 'data row actions should be after name');
+assert.ok(dataRow.indexOf("renderInput(e,'name')") < dataRow.indexOf('renderCustomerCodesInput'), 'data row dealer customer code should be after name');
+assert.ok(dataRow.indexOf('renderCustomerCodesInput') < dataRow.indexOf('saveRow'), 'data row actions should be after dealer customer code');
 assert.ok(dataRow.indexOf('saveRow') < dataRow.indexOf('data-field="is_active"'), 'data row active checkbox should be rightmost');
 
 const stockImport = readHtml('stock_import.html');
