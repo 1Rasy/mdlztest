@@ -2,271 +2,34 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>经销商出库单导入系统</title>
+  <title>经销商库存导入</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <style>
-    :root { --primary:#4A154B; --bg-main:#f8f9fa; --text-main:#212529; --card-bg:#ffffff; --border-color:#dee2e6; --ok:#2e7d32; --danger:#b91c1c; }
+    :root { --primary:#4A154B; --bg-main:#f8f9fa; --text-main:#212529; --card-bg:#ffffff; --border-color:#dee2e6; --blue:#0050b3; }
+    * { box-sizing:border-box; }
     body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding:40px 20px; background:var(--bg-main); color:var(--text-main); }
-    .container { max-width:720px; margin:40px auto; }
-    .card { background:var(--card-bg); padding:35px; border-radius:8px; border:1px solid var(--border-color); box-shadow:0 4px 12px rgba(0,0,0,0.03); }
-    h2 { margin-top:0; margin-bottom:25px; color:var(--text-main); font-size:18px; font-weight:600; border-bottom:2px solid var(--primary); padding-bottom:10px; }
-    .upload-box { border:1px dashed var(--border-color); background:#fff; padding:45px 20px; border-radius:6px; cursor:pointer; text-align:center; transition:all .15s ease-in-out; position:relative; }
-    .upload-box.dragover { border-color:var(--primary)!important; background:#fdfafd!important; }
-    .upload-box:hover { border-color:var(--primary); }
-    .file-input { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
-    .file-info { margin-top:20px; padding:12px; background:#e8f5e9; border:1px solid #c8e6c9; border-radius:4px; font-size:14px; color:var(--ok); display:none; text-align:left; }
-    .fixed-map { margin-top:16px; padding:12px; border:1px solid #eee; border-radius:6px; background:#fafafa; font-size:12px; color:#555; line-height:1.75; }
-    .fixed-map strong { color:var(--primary); }
-    .btn-submit { margin-top:20px; width:100%; background:var(--primary); color:#fff; border:none; padding:12px; border-radius:4px; font-size:14px; font-weight:600; cursor:pointer; transition:background .15s; }
-    .btn-submit:hover { background:#360f37; }
-    .btn-submit:disabled { background:#ced4da; cursor:not-allowed; }
-    .status-msg { margin-top:15px; font-size:13px; font-weight:600; color:var(--primary); text-align:center; white-space:pre-line; line-height:1.6; }
-    .error { color:var(--danger); }
-    .hide { display:none!important; }
+    .container { max-width:640px; margin:40px auto; }
+    .card { background:var(--card-bg); padding:32px; border-radius:12px; border:1px solid var(--border-color); box-shadow:0 4px 12px rgba(0,0,0,.03); }
+    h2 { margin:0 0 10px; color:var(--text-main); font-size:20px; font-weight:800; border-bottom:2px solid var(--primary); padding-bottom:10px; }
+    .sub { margin:0 0 22px; color:#6c757d; font-size:13px; line-height:1.65; }
+    .dealer-grid { display:grid; grid-template-columns:1fr; gap:14px; }
+    .dealer-btn { display:block; text-decoration:none; color:#fff; background:linear-gradient(135deg,var(--primary),#6b266c); padding:18px 20px; border-radius:10px; font-size:17px; font-weight:800; text-align:center; box-shadow:0 6px 14px rgba(74,21,75,.16); }
+    .dealer-btn small { display:block; margin-top:6px; font-size:12px; font-weight:500; opacity:.88; }
+    .dealer-btn.secondary { background:linear-gradient(135deg,#1890ff,var(--blue)); }
+    .back-link { display:inline-block; margin-bottom:14px; color:var(--primary); font-size:13px; font-weight:700; text-decoration:none; }
   </style>
 </head>
 <body>
 <div class="container">
+  <a class="back-link" href="store.html">← 返回管理后台</a>
   <div class="card">
-    <h2>经销商出库单数据导入</h2>
-    <div class="upload-box" id="dropZone">
-      <div id="uploadPrompt" style="font-size:13px;color:#6c757d;">点击选择文件，或将原始 Excel 文件拖拽至此处</div>
-      <input type="file" id="excelFile" class="file-input" accept=".xlsx,.xls">
+    <h2>经销商库存导入</h2>
+    <p class="sub">请选择经销商。吉能和长涛 Excel 格式不同，会进入不同导入页，但最终都写入 raw_dealer_outbounds，并由数据库触发器同步库存。</p>
+    <div class="dealer-grid">
+      <a class="dealer-btn" href="stock_jn.html">吉能导入 <small>沿用原 stock_import 固定列规则</small></a>
+      <a class="dealer-btn secondary" href="stock_ct.html">长涛导入 <small>A日期 / X单号 / AA条码等固定列规则</small></a>
     </div>
-    <div class="fixed-map">
-      <strong>固定列导入规则：</strong><br>
-      只读取原始 Excel 的 A单号、C制单日期、D客户编号、E客户、G条形码、H商品名称、I包装、J件、L散。<br>
-      其他列会被忽略，不再写入 raw_dealer_outbounds。支持有表头、无表头、前面有空白行；若整行被粘到 A列一个单元格，系统会自动按制表符拆分。
-    </div>
-    <div id="fileInfo" class="file-info">已选择文件: <span id="fileName"></span></div>
-    <button id="submitBtn" class="btn-submit" disabled onclick="startImport()">确认导入数据库</button>
-    <div id="statusMsg" class="status-msg hide"></div>
   </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co";
-const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
-window.mySupabaseInstance = (SUPABASE_URL && SUPABASE_KEY) ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-
-const FIXED_IMPORT_COLUMNS = {
-  order_no:0,
-  bill_date:2,
-  customer_code:3,
-  customer_name:4,
-  barcode:6,
-  product_name:7,
-  package_reg:8,
-  qty_piece:9,
-  qty_scatter:11
-};
-const SPECIAL_PRODUCTS_MAP = {
-  "6924513908032": true, "6924513908001": true, "6924513909244": true,
-  "6924513909268": true, "6924513902283": true, "6924513908063": true
-};
-const CHUNK_SIZE = 500;
-
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('excelFile');
-const fileInfo = document.getElementById('fileInfo');
-const fileName = document.getElementById('fileName');
-const submitBtn = document.getElementById('submitBtn');
-const statusMsg = document.getElementById('statusMsg');
-let selectedFile = null;
-
-['dragenter','dragover','dragleave','drop'].forEach(eventName => dropZone.addEventListener(eventName, preventDefaults, false));
-function preventDefaults(e){ e.preventDefault(); e.stopPropagation(); }
-['dragenter','dragover'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false));
-['dragleave','drop'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false));
-dropZone.addEventListener('drop', e => { const dt = e.dataTransfer; if (dt.files.length > 0) handleFileSelection(dt.files[0]); });
-fileInput.addEventListener('change', e => { if (e.target.files.length > 0) handleFileSelection(e.target.files[0]); });
-
-function handleFileSelection(file){
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (ext !== 'xlsx' && ext !== 'xls') { alert('文件格式错误，请选择 .xlsx 或 .xls 格式的文件。'); return; }
-  selectedFile = file;
-  fileName.innerText = file.name;
-  fileInfo.style.display = 'block';
-  submitBtn.disabled = false;
-  statusMsg.classList.add('hide');
-  statusMsg.classList.remove('error');
-}
-
-function setStatus(text, isError=false){
-  statusMsg.classList.remove('hide');
-  statusMsg.classList.toggle('error', isError);
-  statusMsg.innerText = text;
-}
-function normalizeCell(value){ if (value === undefined || value === null) return ''; return String(value).trim(); }
-function normalizeNumber(value){ const text = normalizeCell(value).replace(/,/g, ''); if (text === '') return 0; const num = Number(text); return Number.isFinite(num) ? num : 0; }
-function getCell(rowCells, fieldName){ return normalizeCell(rowCells[FIXED_IMPORT_COLUMNS[fieldName]]); }
-function getNumberCell(rowCells, fieldName){ return normalizeNumber(rowCells[FIXED_IMPORT_COLUMNS[fieldName]]); }
-function safeKeyPart(value){ return normalizeCell(value).replace(/\s+/g, ' ').replace(/[|]/g, '/'); }
-function isInvalidText(value){ const text = String(value || '').trim().toLowerCase(); return !text || text === 'undefined' || text === 'null'; }
-function normalizeRowCells(rowCells){
-  const cells = Array.isArray(rowCells) ? rowCells : [];
-  const firstCell = normalizeCell(cells[0]);
-  const fixedColumnMissing = cells[3] === undefined || cells[6] === undefined;
-  if (firstCell.includes('\t') && (cells.length <= 2 || fixedColumnMissing)) {
-    return firstCell.split('\t');
-  }
-  return cells;
-}
-function rowHasAnyContent(rowCells){
-  return normalizeRowCells(rowCells || []).some(cell => normalizeCell(cell) !== '');
-}
-function isHeaderRow(rowCells){
-  const cells = normalizeRowCells(rowCells || []).map(normalizeCell);
-  const joined = cells.join('|');
-  return joined.includes('单号') && joined.includes('客户编号') && joined.includes('条形码');
-}
-function getDataRows(rawRowsByColumn){
-  const nonEmptyRows = (rawRowsByColumn || [])
-    .map((cells, index) => ({ cells: cells || [], sourceRowNo: index + 1 }))
-    .filter(row => rowHasAnyContent(row.cells));
-  if (nonEmptyRows.length === 0) return [];
-  return isHeaderRow(nonEmptyRows[0].cells) ? nonEmptyRows.slice(1) : nonEmptyRows;
-}
-function describeInvalidRow(rowNo, rowCells, parsedRow){
-  const sample = normalizeRowCells(rowCells || []).slice(0, 8).map(normalizeCell).join(' | ');
-  return `第${rowNo}行：A单号=${parsedRow.order_no || '空'}，D客户编号=${parsedRow.customer_code || '空'}，G条码=${parsedRow.barcode || '空'}；前几列=${sample || '空'}`;
-}
-
-async function loadMappedCustomerWhitelist(){
-  setStatus('正在读取客户编号白名单...');
-  const { data, error } = await window.mySupabaseInstance
-    .from('dealer_employee_mappings')
-    .select('customer_code, employee_code')
-    .not('customer_code', 'is', null)
-    .not('employee_code', 'is', null);
-  if (error) throw error;
-  const whitelist = new Set();
-  (data || []).forEach(row => {
-    const customerCode = normalizeCell(row.customer_code);
-    const employeeCode = normalizeCell(row.employee_code);
-    if (customerCode && employeeCode) whitelist.add(customerCode);
-  });
-  if (whitelist.size === 0) throw new Error('dealer_employee_mappings 里没有可用的客户编号白名单。');
-  return whitelist;
-}
-
-function buildPayloadFromFixedColumns(rowCells, batchId, sourceRowNo){
-  const cells = normalizeRowCells(rowCells || []);
-  const newRow = {
-    import_batch_id: batchId,
-    is_processed: false,
-    source_row_no: sourceRowNo,
-    order_no: getCell(cells, 'order_no'),
-    bill_date: getCell(cells, 'bill_date'),
-    customer_code: getCell(cells, 'customer_code'),
-    customer_name: getCell(cells, 'customer_name'),
-    barcode: getCell(cells, 'barcode'),
-    product_name: getCell(cells, 'product_name'),
-    package_reg: getNumberCell(cells, 'package_reg'),
-    qty_piece: getNumberCell(cells, 'qty_piece'),
-    qty_scatter: getNumberCell(cells, 'qty_scatter')
-  };
-  newRow.is_triple_spec_direct = !!SPECIAL_PRODUCTS_MAP[newRow.barcode];
-  return newRow;
-}
-
-async function upsertInChunks(rows){
-  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-    const chunk = rows.slice(i, i + CHUNK_SIZE);
-    setStatus(`正在写入数据库 ${Math.min(i + chunk.length, rows.length)} / ${rows.length} 条...`);
-    const { error } = await window.mySupabaseInstance
-      .from('raw_dealer_outbounds')
-      .upsert(chunk, { onConflict: 'row_key' });
-    if (error) throw error;
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
-}
-
-function buildFilteredPayloads(rawRowsByColumn, whitelist){
-  const batchId = 'BATCH_' + Date.now();
-  const occurrenceMap = new Map();
-  const seenRowKeys = new Set();
-  const safePayloads = [];
-  const dataRows = getDataRows(rawRowsByColumn);
-  let skippedInvalid = 0;
-  let skippedNotMapped = 0;
-  let skippedDuplicate = 0;
-  const invalidSamples = [];
-
-  dataRows.forEach(row => {
-    const sourceRowNo = row.sourceRowNo;
-    const rowCells = row.cells || [];
-    const newRow = buildPayloadFromFixedColumns(rowCells, batchId, sourceRowNo);
-
-    if (isInvalidText(newRow.order_no) || isInvalidText(newRow.barcode) || isInvalidText(newRow.customer_code)) {
-      skippedInvalid++;
-      if (invalidSamples.length < 5) invalidSamples.push(describeInvalidRow(sourceRowNo, rowCells, newRow));
-      return;
-    }
-    if (!whitelist.has(newRow.customer_code)) {
-      skippedNotMapped++;
-      return;
-    }
-
-    const occurrenceBase = `${safeKeyPart(newRow.order_no)}|${safeKeyPart(newRow.barcode)}`;
-    const duplicateSeq = (occurrenceMap.get(occurrenceBase) || 0) + 1;
-    occurrenceMap.set(occurrenceBase, duplicateSeq);
-
-    newRow.duplicate_seq = duplicateSeq;
-    newRow.row_key = [safeKeyPart(newRow.order_no), safeKeyPart(newRow.barcode), duplicateSeq].join('|');
-
-    if (seenRowKeys.has(newRow.row_key)) {
-      skippedDuplicate++;
-      return;
-    }
-    seenRowKeys.add(newRow.row_key);
-    safePayloads.push(newRow);
-  });
-
-  return { safePayloads, totalRows: dataRows.length, skippedInvalid, skippedNotMapped, skippedDuplicate, invalidSamples };
-}
-
-function startImport(){
-  if (!selectedFile || !window.mySupabaseInstance) return;
-  submitBtn.disabled = true;
-  setStatus('正在解析 Excel 数据...');
-
-  const reader = new FileReader();
-  reader.onload = async function(e){
-    try {
-      const whitelist = await loadMappedCustomerWhitelist();
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type:'array', cellDates:true });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rawRowsByColumn = XLSX.utils.sheet_to_json(worksheet, { header:1, raw:false, dateNF:'yyyy-mm-dd', blankrows:false });
-      if (!rawRowsByColumn || rawRowsByColumn.length === 0) throw new Error('Excel 未包含任何可读取内容。');
-
-      setStatus('正在按客户编号白名单筛选并生成行级唯一标识...');
-      const result = buildFilteredPayloads(rawRowsByColumn, whitelist);
-      const { safePayloads, totalRows, skippedInvalid, skippedNotMapped, skippedDuplicate, invalidSamples } = result;
-
-      if (safePayloads.length === 0) {
-        const sampleText = invalidSamples.length ? `\n\n无效行示例：\n${invalidSamples.join('\n')}` : '';
-        throw new Error(`有效行解析为0。原始数据 ${totalRows} 行，未匹配白名单 ${skippedNotMapped} 行，无效行 ${skippedInvalid} 行。请检查 A单号、D客户编号、G条形码 是否在固定列。${sampleText}`);
-      }
-
-      setStatus(`原始数据 ${totalRows} 行\n白名单命中 ${safePayloads.length} 行\n跳过非车销客户 ${skippedNotMapped} 行\n跳过无效行 ${skippedInvalid} 行\n正在准备分批写入...`);
-      await upsertInChunks(safePayloads);
-
-      setStatus(`数据导入完成。\n原始数据 ${totalRows} 行，实际导入 ${safePayloads.length} 行，跳过非车销客户 ${skippedNotMapped} 行。`);
-      alert(`导入成功，共处理 ${safePayloads.length} 条车销有效记录。`);
-    } catch (err) {
-      console.error(err);
-      setStatus('导入失败：' + (err.message || err), true);
-      alert('导入失败：' + (err.message || err));
-    } finally {
-      submitBtn.disabled = false;
-    }
-  };
-  reader.readAsArrayBuffer(selectedFile);
-}
-</script>
 </body>
 </html>
