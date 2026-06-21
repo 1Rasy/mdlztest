@@ -26,7 +26,16 @@ assertIncludes(dashboard, "location.href='employees.html'", 'dashboard links to 
 assertIncludes(dashboard, ".from('sales_orders')", 'dashboard loads sell-in orders');
 assertIncludes(dashboard, ".from('employees')", 'dashboard loads employee names');
 assertIncludes(dashboard, 'employeeRankRows', 'dashboard renders employee ranking');
-assertIncludes(dashboard, 'recentOrderRows', 'dashboard renders recent sell-in orders');
+assertIncludes(dashboard, 'id="employeeSearch"', 'dashboard should provide employee-name search');
+assertIncludes(dashboard, 'placeholder="搜索员工名字"', 'dashboard employee search should use name wording');
+assertIncludes(dashboard, 'oninput="renderDashboard()"', 'employee search should re-render dashboard metrics and ranking');
+assertIncludes(dashboard, 'function filterOrdersByEmployeeName', 'dashboard should filter orders by employee name');
+assertIncludes(dashboard, 'function buildMetrics(orders)', 'dashboard should rebuild metrics from filtered orders');
+assertIncludes(dashboard, '<div class="label">卖进门店数</div>', 'dashboard should label store metric as sell-in store count');
+assertIncludes(dashboard, '<th style="width:110px;">卖进门店数</th>', 'employee ranking should label store column as sell-in store count');
+assert.ok(!dashboard.includes('recentOrderRows'), 'dashboard should not render recent orders');
+assert.ok(!dashboard.includes('最近卖进单据'), 'dashboard should remove recent orders card');
+assert.ok(!dashboard.includes('<div class="split">'), 'dashboard should show ranking as the default single section');
 assertIncludes(dashboard, '.metric-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }', 'dashboard should use four metric cards');
 assert.ok(!dashboard.includes('动销人员'), 'dashboard should not show active seller metric');
 assert.ok(!dashboard.includes('activeSellerCount'), 'dashboard should not compute active seller metric');
