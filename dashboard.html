@@ -144,11 +144,11 @@ function formatDate(value) {
   if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
   return `${d.getMonth() + 1}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
-function formatDateTime(value) {
+function formatDateOnly(value) {
   if (!value) return '';
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function getStartDate() {
   const now = new Date();
@@ -289,33 +289,76 @@ function renderDashboard() {
   renderEmployeeRank(buildEmployeeRows(filteredOrders, dashboardEmployees));
   hideStatus();
 }
-function exportOrderExcel() {
+async function exportOrderExcel() {
   if (!window.XLSX) {
     alert('Excel 导出组件加载失败，请刷新页面后重试');
     return;
   }
   const orders = getFilteredOrders();
-  const data = [['开单时间', '员工', '员工号', '门店编号', '门店', '单号', '金额', '状态']];
-  orders.forEach(order => {
+  if (!orders.length) {
+    alert('当前筛选没有可导出的开单单据');
+    return;
+  }
+  const orderIds = orders.map(order => order.id).filter(Boolean);
+  if (!orderIds.length) {
+    alert('当前单据缺少订单ID，无法导出明细');
+    return;
+  }
+  const itemRes = await client
+    .from('sales_order_items')
+    .select('order_id, barcode, price, qty')
+    .in('order_id', orderIds);
+  if (itemRes.error) {
+    console.error(itemRes.error);
+    alert('开单明细加载失败：' + itemRes.error.message);
+    return;
+  }
+  const items = itemRes.data || [];
+  const barcodes = Array.from(new Set(items.map(item => String(item.barcode || '')).filter(Boolean)));
+  let productMap = new Map();
+  if (barcodes.length) {
+    const productRes = await client
+      .from('products')
+      .select('barcode, name')
+      .in('barcode', barcodes);
+    if (productRes.error) {
+      console.error(productRes.error);
+      alert('商品资料加载失败：' + productRes.error.message);
+      return;
+    }
+    productMap = new Map((productRes.data || []).map(p => [String(p.barcode || ''), p]));
+  }
+  const orderMap = new Map(orders.map(order => [String(order.id || ''), order]));
+  const data = [['开单日期', '员工', '员工号', '门店编号', '门店', '商品名', '条码', '价格', '散数']];
+  items.forEach(item => {
+    const order = orderMap.get(String(item.order_id || ''));
+    if (!order) return;
     const code = String(order.employee_code || '');
     const emp = dashboardEmployeeMap.get(code);
+    const barcode = String(item.barcode || '');
+    const product = productMap.get(barcode);
     data.push([
-      formatDateTime(order.created_at),
+      formatDateOnly(order.created_at),
       emp?.name || code,
       code,
       String(order.atom_code || ''),
       order.store_name || '',
-      order.order_no || '',
-      Number(order.total_amount || 0),
-      order.status || ''
+      product?.name || barcode,
+      barcode,
+      Number(item.price || 0),
+      Number(item.qty || 0)
     ]);
   });
+  if (data.length === 1) {
+    alert('当前筛选没有开单明细可导出');
+    return;
+  }
   const worksheet = XLSX.utils.aoa_to_sheet(data);
-  worksheet['!cols'] = [{ wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 18 }, { wch: 12 }, { wch: 12 }];
+  worksheet['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 38 }, { wch: 18 }, { wch: 10 }, { wch: 10 }];
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, '开单单据');
+  XLSX.utils.book_append_sheet(workbook, worksheet, '开单明细');
   const stamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(workbook, `开单单据_${stamp}.xlsx`);
+  XLSX.writeFile(workbook, `开单明细_${stamp}.xlsx`);
 }
 async function loadDashboard() {
   setStatus('正在加载看板...');
@@ -323,7 +366,7 @@ async function loadDashboard() {
   const end = getEndDate();
   let orderQuery = client
     .from('sales_orders')
-    .select('order_no, created_at, employee_code, atom_code, store_name, total_amount, status')
+    .select('id, order_no, created_at, employee_code, atom_code, store_name, total_amount, status')
     .order('created_at', { ascending:false })
     .limit(2000);
   if (start) orderQuery = orderQuery.gte('created_at', start.toISOString());
