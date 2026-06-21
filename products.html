@@ -284,7 +284,7 @@ function renderFilterPanel(field) {
     <label class="filter-option">
       <input type="checkbox" data-field="${esc(field)}" data-key="${esc(key)}" ${selected === null || selected.has(key) ? 'checked' : ''} onchange="toggleFilterValueFromInput(this)">
       <span>${esc(label)}</span>
-      <button type="button" class="only-btn" data-field="${esc(field)}" data-key="${esc(key)}" onclick="onlyFilterValueFromButton(this)">只看</button>
+      <button type="button" class="only-btn" data-field="${esc(field)}" data-key="${esc(key)}" onclick="onlyFilterValueFromButton(event,this)">只看</button>
     </label>
   `).join('') : '<div class="filter-empty">没有可选项</div>';
 
@@ -305,7 +305,7 @@ function toggleFilterValueFromInput(input) {
   toggleFilterValue(input.dataset.field, input.dataset.key, input.checked);
 }
 
-function onlyFilterValueFromButton(button) {
+function onlyFilterValueFromButton(event, button) {
   event.stopPropagation();
   onlyFilterValue(button.dataset.field, button.dataset.key);
 }
