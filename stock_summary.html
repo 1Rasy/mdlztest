@@ -92,6 +92,7 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
@@ -277,36 +278,24 @@ function renderDetailRow(row) {
     </tr>
   `;
 }
-function exportCell(value) {
-  return esc(value).replace(/\n/g, '<br>');
-}
 function exportEmployeeStocks() {
+  if (!window.XLSX) {
+    alert('Excel 导出组件加载失败，请刷新页面后重试');
+    return;
+  }
   const rows = buildRows();
-  const headers = ['员工名字', '员工号', '商品名', '库存散数'];
-  const bodyRows = [];
+  const data = [['员工名字', '员工号', '商品名', '库存散数']];
   rows.forEach(row => {
     row.items.forEach(item => {
-      bodyRows.push([row.name || '', row.employee_code, item.product.title, item.qty]);
+      data.push([row.name || '', row.employee_code, item.product.title, item.qty]);
     });
   });
-  const tableHtml = `
-    <html><head><meta charset="UTF-8"></head><body>
-      <table border="1">
-        <thead><tr>${headers.map(h => `<th>${exportCell(h)}</th>`).join('')}</tr></thead>
-        <tbody>${bodyRows.map(row => `<tr>${row.map(cell => `<td>${exportCell(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-      </table>
-    </body></html>
-  `;
-  const blob = new Blob([tableHtml], { type:'application/vnd.ms-excel;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  worksheet['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 38 }, { wch: 12 }];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '库存管理');
   const stamp = new Date().toISOString().slice(0, 10);
-  link.href = url;
-  link.download = `库存管理_${stamp}.xls`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  XLSX.writeFile(workbook, `库存管理_${stamp}.xlsx`);
 }
 function renderAll() {
   const rows = buildRows();
