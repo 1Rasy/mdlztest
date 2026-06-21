@@ -17,7 +17,7 @@
     .btn { border:1px solid var(--line); background:#fff; color:var(--text); border-radius:9px; padding:9px 12px; font-weight:700; cursor:pointer; }
     .btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
     .btn.warn { background:#fffbeb; color:#92400e; border-color:#fde68a; }
-    .nav-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; margin-top:14px; }
+    .nav-grid { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; margin-top:14px; }
     .nav-btn { width:100%; min-height:68px; border:1px solid var(--line); background:#fff; color:var(--text); border-radius:10px; padding:12px; text-align:left; cursor:pointer; }
     .nav-btn strong { display:block; color:var(--primary); font-size:15px; margin-bottom:5px; }
     .nav-btn span { display:block; color:var(--muted); font-size:12px; line-height:1.4; }
@@ -58,7 +58,7 @@
       <div class="top">
         <div>
           <h1>管理员看板</h1>
-          <div class="sub">导入、基础表维护和全员卖进数据总览</div>
+          <div class="sub">导入、基础表维护、全员车存核对和全员卖进数据总览</div>
         </div>
         <button class="btn" onclick="location.href='index.html'">员工开单入口</button>
       </div>
@@ -66,8 +66,9 @@
       <div class="nav-grid">
         <button class="nav-btn" onclick="location.href='store_import.html'"><strong>导入门店</strong><span>更新员工负责门店和门店白名单</span></button>
         <button class="nav-btn" onclick="location.href='stock_import.html'"><strong>导入库存</strong><span>导入经销商出库单并更新车存</span></button>
+        <button class="nav-btn" onclick="location.href='stock_summary.html'"><strong>总库存管理</strong><span>查看和核对每个人的车销库存</span></button>
         <button class="nav-btn" onclick="location.href='products.html'"><strong>商品表</strong><span>维护条码、规格、价格和启用状态</span></button>
-        <button class="nav-btn" onclick="location.href='employees.html'"><strong>员工表</strong><span>维护员工工号、姓名和启用状态</span></button>
+        <button class="nav-btn" onclick="location.href='employees.html'"><strong>员工表</strong><span>维护员工工号、姓名、客户编号和启用状态</span></button>
       </div>
     </div>
 
