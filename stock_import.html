@@ -36,7 +36,7 @@
     <div class="fixed-map">
       <strong>固定列导入规则：</strong><br>
       只读取原始 Excel 的 A单号、C制单日期、D客户编号、E客户、G条形码、H商品名称、I包装、J件、L散。<br>
-      其他列会被忽略，不再写入 raw_dealer_outbounds。若整行被粘到 A列一个单元格，系统会自动按制表符拆分。
+      其他列会被忽略，不再写入 raw_dealer_outbounds。支持有表头、无表头、前面有空白行；若整行被粘到 A列一个单元格，系统会自动按制表符拆分。
     </div>
     <div id="fileInfo" class="file-info">已选择文件: <span id="fileName"></span></div>
     <button id="submitBtn" class="btn-submit" disabled onclick="startImport()">确认导入数据库</button>
@@ -114,6 +114,21 @@ function normalizeRowCells(rowCells){
   }
   return cells;
 }
+function rowHasAnyContent(rowCells){
+  return normalizeRowCells(rowCells || []).some(cell => normalizeCell(cell) !== '');
+}
+function isHeaderRow(rowCells){
+  const cells = normalizeRowCells(rowCells || []).map(normalizeCell);
+  const joined = cells.join('|');
+  return joined.includes('单号') && joined.includes('客户编号') && joined.includes('条形码');
+}
+function getDataRows(rawRowsByColumn){
+  const nonEmptyRows = (rawRowsByColumn || [])
+    .map((cells, index) => ({ cells: cells || [], sourceRowNo: index + 1 }))
+    .filter(row => rowHasAnyContent(row.cells));
+  if (nonEmptyRows.length === 0) return [];
+  return isHeaderRow(nonEmptyRows[0].cells) ? nonEmptyRows.slice(1) : nonEmptyRows;
+}
 function describeInvalidRow(rowNo, rowCells, parsedRow){
   const sample = normalizeRowCells(rowCells || []).slice(0, 8).map(normalizeCell).join(' | ');
   return `第${rowNo}行：A单号=${parsedRow.order_no || '空'}，D客户编号=${parsedRow.customer_code || '空'}，G条码=${parsedRow.barcode || '空'}；前几列=${sample || '空'}`;
@@ -174,19 +189,20 @@ function buildFilteredPayloads(rawRowsByColumn, whitelist){
   const occurrenceMap = new Map();
   const seenRowKeys = new Set();
   const safePayloads = [];
-  const dataRows = rawRowsByColumn.slice(1);
+  const dataRows = getDataRows(rawRowsByColumn);
   let skippedInvalid = 0;
   let skippedNotMapped = 0;
   let skippedDuplicate = 0;
   const invalidSamples = [];
 
-  dataRows.forEach((rowCells, rowIndex) => {
-    const sourceRowNo = rowIndex + 2;
-    const newRow = buildPayloadFromFixedColumns(rowCells || [], batchId, sourceRowNo);
+  dataRows.forEach(row => {
+    const sourceRowNo = row.sourceRowNo;
+    const rowCells = row.cells || [];
+    const newRow = buildPayloadFromFixedColumns(rowCells, batchId, sourceRowNo);
 
     if (isInvalidText(newRow.order_no) || isInvalidText(newRow.barcode) || isInvalidText(newRow.customer_code)) {
       skippedInvalid++;
-      if (invalidSamples.length < 5) invalidSamples.push(describeInvalidRow(sourceRowNo, rowCells || [], newRow));
+      if (invalidSamples.length < 5) invalidSamples.push(describeInvalidRow(sourceRowNo, rowCells, newRow));
       return;
     }
     if (!whitelist.has(newRow.customer_code)) {
@@ -224,8 +240,8 @@ function startImport(){
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type:'array', cellDates:true });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rawRowsByColumn = XLSX.utils.sheet_to_json(worksheet, { header:1, raw:false, dateNF:'yyyy-mm-dd' });
-      if (rawRowsByColumn.length <= 1) throw new Error('Excel 未包含有效数据行。');
+      const rawRowsByColumn = XLSX.utils.sheet_to_json(worksheet, { header:1, raw:false, dateNF:'yyyy-mm-dd', blankrows:false });
+      if (!rawRowsByColumn || rawRowsByColumn.length === 0) throw new Error('Excel 未包含任何可读取内容。');
 
       setStatus('正在按客户编号白名单筛选并生成行级唯一标识...');
       const result = buildFilteredPayloads(rawRowsByColumn, whitelist);
