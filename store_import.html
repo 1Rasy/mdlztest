@@ -76,7 +76,7 @@
         if (emp.employee_code) employeeWhitelist.add(String(emp.employee_code).trim());
       });
 
-      statusDiv.innerText = `白名单加载就绪，已缓存 ${employeeWhitelist.size} 条员工记录。`;
+      statusDiv.innerText = `已加载 ${employeeWhitelist.size} 位员工。`;
     } catch (err) {
       console.error(err);
       statusDiv.innerText = `网络或系统异常: ${err.message || err}`;
