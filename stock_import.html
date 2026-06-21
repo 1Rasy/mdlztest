@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>经销商出库单导入系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <style>
+    :root { 
+      --primary: #4A154B; 
+      --bg-main: #f8f9fa; 
+      --text-main: #212529; 
+      --card-bg: #ffffff; 
+      --border-color: #dee2e6; 
+    }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      margin: 0; 
+      padding: 40px 20px; 
+      background: var(--bg-main); 
+      color: var(--text-main); 
+    }
+    .container { max-width: 600px; margin: 40px auto; }
+    .card { 
+      background: var(--card-bg); 
+      padding: 35px; 
+      border-radius: 8px; 
+      border: 1px solid var(--border-color); 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+    }
+    h2 { 
+      margin-top: 0; 
+      margin-bottom: 25px; 
+      color: var(--text-main); 
+      font-size: 18px; 
+      font-weight: 600; 
+      border-bottom: 2px solid var(--primary); 
+      padding-bottom: 10px; 
+    }
+    .upload-box { 
+      border: 1px dashed var(--border-color); 
+      background: #ffffff; 
+      padding: 45px 20px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      text-align: center;
+      transition: all 0.15s ease-in-out; 
+      position: relative; 
+    }
+    .upload-box.dragover { 
+      border-color: var(--primary) !important; 
+      background: #fdfafd !important; 
+    }
+    .upload-box:hover { border-color: var(--primary); }
+    .file-input { 
+      position: absolute; 
+      top: 0; left: 0; width: 100%; height: 100%; 
+      opacity: 0; cursor: pointer; 
+    }
+    .file-info { 
+      margin-top: 20px; 
+      padding: 12px; 
+      background: #e8f5e9; 
+      border: 1px solid #c8e6c9; 
+      border-radius: 4px; 
+      font-size: 14px; 
+      color: #2e7d32; 
+      display: none; 
+      text-align: left;
+    }
+    .btn-submit { 
+      margin-top: 20px; 
+      width: 100%; 
+      background: var(--primary); 
+      color: #fff; 
+      border: none; 
+      padding: 12px; 
+      border-radius: 4px; 
+      font-size: 14px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      transition: background 0.15s; 
+    }
+    .btn-submit:hover { background: #360f37; }
+    .btn-submit:disabled { background: #ced4da; cursor: not-allowed; }
+    .status-msg { margin-top: 15px; font-size: 13px; font-weight: 600; color: var(--primary); text-align: center; }
+    .hide { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h2>经销商出库单数据导入</h2>
+    
+    <div class="upload-box" id="dropZone">
+      <div id="uploadPrompt" style="font-size: 13px; color: #6c757d;">点击选择文件，或将原始 Excel 文件拖拽至此处</div>
+      <input type="file" id="excelFile" class="file-input" accept=".xlsx, .xls">
+    </div>
+    
+    <div id="fileInfo" class="file-info">已选择文件: <span id="fileName"></span></div>
+    
+    <button id="submitBtn" class="btn-submit" disabled onclick="startImport()">确认导入数据库</button>
+    <div id="statusMsg" class="status-msg hide"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co"; 
+  const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG"; 
+
+  window.mySupabaseInstance = (SUPABASE_URL && SUPABASE_KEY) ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+  const SAFE_FIELD_TRANSLATOR = {
+    "单号": "order_no", "单据编号": "doc_no", "制单日期": "bill_date",
+    "客户编号": "customer_code", "客户": "customer_name", "商品编号": "sku_code",
+    "条形码": "barcode", "商品名称": "product_name", "包装": "package_reg",
+    "件": "qty_piece", "1": "amount_piece", "散": "qty_scatter",
+    "2": "unit", "3": "unit_price", "折扣": "discount", "应收款": "total_amount"
+  };
+
+  const NUMERIC_FIELDS = [
+    "package_reg", "qty_piece", "amount_piece", "qty_scatter", 
+    "unit_price", "discount", "total_amount"
+  ];
+
+  const FIXED_IMPORT_COLUMNS = {
+    order_no: 0,
+    barcode: 6
+  };
+
+  function normalizeFixedCell(value) {
+    if (value === undefined || value === null) return "";
+    return String(value).trim();
+  }
+
+  const SPECIAL_PRODUCTS_MAP = {
+    "6924513908032": true,
+    "6924513908001": true,
+    "6924513909244": true,
+    "6924513909268": true,
+    "6924513902283": true,
+    "6924513908063": true
+  };
+
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('excelFile');
+  const fileInfo = document.getElementById('fileInfo');
+  const fileName = document.getElementById('fileName');
+  const submitBtn = document.getElementById('submitBtn');
+  const statusMsg = document.getElementById('statusMsg');
+  let selectedFile = null;
+
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+  });
+  function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+  });
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+  });
+
+  dropZone.addEventListener('drop', function(e) {
+    const dt = e.dataTransfer;
+    if (dt.files.length > 0) handleFileSelection(dt.files[0]);
+  });
+
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files.length > 0) handleFileSelection(e.target.files[0]);
+  });
+
+  function handleFileSelection(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext !== 'xlsx' && ext !== 'xls') {
+      alert("文件格式错误，请选择 .xlsx 或 .xls 格式的文件。");
+      return;
+    }
+    selectedFile = file;
+    fileName.innerText = file.name;
+    fileInfo.style.display = 'block'; 
+    submitBtn.disabled = false;      
+    statusMsg.classList.add('hide');
+  }
+
+  function startImport() {
+    if (!selectedFile || !window.mySupabaseInstance) return;
+    
+    submitBtn.disabled = true;
+    statusMsg.classList.remove('hide');
+    statusMsg.innerText = "正在解析 Excel 数据...";
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        
+        // 🛠️ 关键修改 1：在读取工作簿时显式配置 cellDates: true
+        const workbook = XLSX.read(data, { 
+          type: 'array',
+          cellDates: true 
+        });
+        
+        // 🛠️ 关键修改 2：在转换为 JSON 时指定日期格式化规范
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, {
+          raw: false,
+          dateNF: 'yyyy-mm-dd'
+        });
+        const rawRowsByColumn = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          raw: false,
+          dateNF: 'yyyy-mm-dd'
+        }).slice(1);
+        
+        if (rawRows.length === 0) throw new Error("Excel 未包含有效数据行。");
+
+        statusMsg.innerText = "正在清洗并过滤重复行...";
+
+        const batchId = "BATCH_" + Date.now();
+        const seenKeys = new Set();
+        const safePayloads = [];
+
+        rawRows.forEach((row, rowIndex) => {
+          let newRow = { import_batch_id: batchId, is_processed: false };
+          let hasValidData = false;
+          const rowCells = rawRowsByColumn[rowIndex] || [];
+
+          for (let chineseKey in row) {
+            let cleanKey = chineseKey.replace(/[\s\(\)\（\）\%]/g, "");
+            if (cleanKey.includes("折扣")) cleanKey = "折扣";
+
+            const englishKey = SAFE_FIELD_TRANSLATOR[cleanKey];
+            if (englishKey) {
+              hasValidData = true;
+              let val = row[chineseKey];
+              
+              if (NUMERIC_FIELDS.includes(englishKey)) {
+                if (val === "" || val === undefined || val === null || String(val).trim() === "") {
+                  newRow[englishKey] = 0;
+                } else {
+                  newRow[englishKey] = Number(val);
+                }
+              } else {
+                newRow[englishKey] = (val !== undefined && val !== null) ? String(val).trim() : val;
+              }
+            }
+          }
+
+          newRow.order_no = normalizeFixedCell(rowCells[FIXED_IMPORT_COLUMNS.order_no]);
+          newRow.barcode = normalizeFixedCell(rowCells[FIXED_IMPORT_COLUMNS.barcode]);
+          if (newRow.order_no || newRow.barcode) hasValidData = true;
+          
+          NUMERIC_FIELDS.forEach(numKey => {
+            if (newRow[numKey] === undefined) newRow[numKey] = 0;
+          });
+
+          if (newRow.barcode && SPECIAL_PRODUCTS_MAP[newRow.barcode]) {
+            newRow.is_triple_spec_direct = true; 
+          } else {
+            newRow.is_triple_spec_direct = false;
+          }
+
+          if (hasValidData && newRow.order_no && newRow.barcode && newRow.order_no !== "undefined" && newRow.order_no !== "null") {
+            const uniqueKey = `${newRow.order_no}_${newRow.barcode}`;
+            
+            if (seenKeys.has(uniqueKey)) {
+              return; 
+            }
+            seenKeys.add(uniqueKey);
+            safePayloads.push(newRow);
+          }
+        });
+
+        if (safePayloads.length === 0) {
+          throw new Error("有效行解析为0，请核对固定列：A列单号、G列条形码。");
+        }
+
+        statusMsg.innerText = `正在写入数据库 (${safePayloads.length}条)...`;
+
+        const { error } = await window.mySupabaseInstance
+          .from('raw_dealer_outbounds')
+          .upsert(safePayloads, { onConflict: 'order_no,barcode' });
+
+        if (error) throw error;
+
+        statusMsg.innerText = "数据导入完成。";
+        alert(`导入成功，共处理 ${safePayloads.length} 条有效记录。`);
+        
+        fileInfo.style.display = 'none';
+        selectedFile = null;
+      } catch (err) {
+        console.error(err);
+        statusMsg.innerText = "导入失败";
+        alert(`导入异常: ${err.message || '请检查表结构与字段映射。'}`);
+        submitBtn.disabled = false;
+      }
+    };
+    reader.readAsArrayBuffer(selectedFile);
+  }
+</script>
+</body>
+</html>
