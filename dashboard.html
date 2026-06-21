@@ -26,11 +26,10 @@
     .status { font-size:13px; color:var(--muted); margin-top:8px; }
     .error { color:var(--danger); font-weight:700; }
     .ok { color:var(--ok); font-weight:700; }
-    .metric-grid { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; }
+    .metric-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
     .metric { border:1px solid var(--line); border-radius:10px; padding:12px; background:#fbf9fc; min-height:82px; }
     .metric .label { color:var(--muted); font-size:12px; }
     .metric .value { margin-top:8px; color:var(--primary); font-size:23px; font-weight:800; line-height:1.1; word-break:break-word; }
-    .metric .hint { margin-top:6px; color:var(--muted); font-size:12px; }
     .split { display:grid; grid-template-columns:1.2fr .8fr; gap:12px; }
     .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff; }
     table { width:100%; min-width:720px; border-collapse:separate; border-spacing:0; }
@@ -190,11 +189,10 @@ function setRange(range) {
 }
 function renderMetrics(metrics) {
   document.getElementById('metricGrid').innerHTML = `
-    <div class="metric"><div class="label">卖进金额</div><div class="value">${money(metrics.totalAmount)}</div><div class="hint">元</div></div>
-    <div class="metric"><div class="label">卖进单据</div><div class="value">${metrics.orderCount}</div><div class="hint">有效订单数</div></div>
-    <div class="metric"><div class="label">覆盖门店</div><div class="value">${metrics.storeCount}</div><div class="hint">有卖进的门店</div></div>
-    <div class="metric"><div class="label">动销人员</div><div class="value">${metrics.activeSellerCount}</div><div class="hint">有订单的员工</div></div>
-    <div class="metric"><div class="label">平均客单价</div><div class="value">${money(metrics.avgOrderAmount)}</div><div class="hint">元 / 单</div></div>
+    <div class="metric"><div class="label">卖进金额</div><div class="value">${money(metrics.totalAmount)}</div></div>
+    <div class="metric"><div class="label">卖进单据</div><div class="value">${metrics.orderCount}</div></div>
+    <div class="metric"><div class="label">覆盖门店</div><div class="value">${metrics.storeCount}</div></div>
+    <div class="metric"><div class="label">平均客单价</div><div class="value">${money(metrics.avgOrderAmount)}</div></div>
   `;
 }
 function renderEmployeeRank(rows) {
@@ -206,7 +204,7 @@ function renderEmployeeRank(rows) {
   tbody.innerHTML = rows.map((row, index) => `
     <tr>
       <td><span class="rank">${index + 1}</span></td>
-      <td><strong>${esc(row.name || row.employee_code)}</strong><div class="sub">${esc(row.employee_code)}</div></td>
+      <td><strong>${esc(row.name || row.employee_code)}</strong></td>
       <td class="amount">${money(row.totalAmount)}</td>
       <td>${row.orderCount}</td>
       <td>${row.storeCount}</td>
@@ -226,7 +224,7 @@ function renderRecentOrders(rows, employeeMap) {
     return `
       <tr>
         <td>${esc(formatDate(order.created_at))}</td>
-        <td><strong>${esc(emp?.name || order.employee_code || '-')}</strong><div class="sub">${esc(order.employee_code || '')}</div></td>
+        <td><strong>${esc(emp?.name || order.employee_code || '-')}</strong></td>
         <td>${esc(order.store_name || order.atom_code || '-')}</td>
         <td class="amount">${money(order.total_amount)}</td>
       </tr>
@@ -296,7 +294,6 @@ async function loadDashboard() {
     totalAmount: orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0),
     orderCount: orders.length,
     storeCount: new Set(orders.map(order => String(order.atom_code || '')).filter(Boolean)).size,
-    activeSellerCount: rankRows.length,
     avgOrderAmount: orders.length ? orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0) / orders.length : 0
   };
 
