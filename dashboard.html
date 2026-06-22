@@ -46,30 +46,14 @@
     .rank { display:inline-flex; width:24px; height:24px; align-items:center; justify-content:center; border-radius:999px; background:#f4f2f5; color:var(--primary); font-weight:800; }
     .amount { font-weight:800; color:var(--primary); }
     .empty { padding:18px; color:var(--muted); text-align:center; }
-    @media (max-width:900px) {
-      .nav-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
-      .metric-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
-    }
-    @media (max-width:560px) {
-      body { padding:8px; }
-      .nav-grid { grid-template-columns:1fr; }
-      .metric-grid { grid-template-columns:1fr; }
-      .filters .btn, .date-input { width:100%; }
-      .employee-filter { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); }
-      .employee-chip { width:100%; }
-    }
+    @media (max-width:900px) { .nav-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } .metric-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+    @media (max-width:560px) { body { padding:8px; } .nav-grid { grid-template-columns:1fr; } .metric-grid { grid-template-columns:1fr; } .filters .btn, .date-input { width:100%; } .employee-filter { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); } .employee-chip { width:100%; } }
   </style>
 </head>
 <body>
   <div class="shell">
     <div class="card">
-      <div class="top">
-        <div>
-          <h1>管理后台</h1>
-        </div>
-        <button class="btn" onclick="location.href='index.html'">员工开单入口</button>
-      </div>
-
+      <div class="top"><div><h1>管理后台</h1></div><button class="btn" onclick="location.href='index.html'">员工开单入口</button></div>
       <div class="nav-grid">
         <button class="nav-btn" onclick="location.href='store_import.html'"><strong>导入门店</strong></button>
         <div class="nav-btn nav-import-card"><strong>导入库存</strong><div class="import-side-buttons"><button class="import-mini-btn" onclick="location.href='stock_jn_admin.html?dealer=jn'">吉能</button><button class="import-mini-btn" onclick="location.href='stock_ct_admin.html'">长涛</button></div></div>
@@ -78,205 +62,69 @@
         <button class="nav-btn" onclick="location.href='employees.html'"><strong>员工表</strong></button>
       </div>
     </div>
-
     <div class="card">
-      <div class="top">
-        <div>
-          <h2>卖进数据</h2>
-          <div class="sub">默认看本月，可切换今天、近 7 天或全部历史。</div>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn" onclick="exportOrderExcel()">导出开单单据</button>
-          <button class="btn" onclick="loadDashboard()">刷新</button>
-        </div>
-      </div>
-      <div class="filters">
-        <button id="range_today" class="btn" onclick="setRange('today')">今天</button>
-        <button id="range_7d" class="btn" onclick="setRange('7d')">近 7 天</button>
-        <button id="range_month" class="btn primary" onclick="setRange('month')">本月</button>
-        <button id="range_all" class="btn" onclick="setRange('all')">全部历史</button>
-        <input id="customDate" class="date-input" type="date" onchange="setRange('custom')">
-      </div>
-      <div id="employeeFilter" class="employee-filter"></div>
-      <div id="status" class="status">正在加载看板...</div>
+      <div class="top"><div><h2>卖进数据</h2><div class="sub">默认看本月，可切换今天、近 7 天或全部历史。</div></div><div style="display:flex; gap:8px; flex-wrap:wrap;"><button class="btn" onclick="exportOrderExcel()">导出开单单据</button><button class="btn" onclick="loadDashboard()">刷新</button></div></div>
+      <div class="filters"><button id="range_today" class="btn" onclick="setRange('today')">今天</button><button id="range_7d" class="btn" onclick="setRange('7d')">近 7 天</button><button id="range_month" class="btn primary" onclick="setRange('month')">本月</button><button id="range_all" class="btn" onclick="setRange('all')">全部历史</button><input id="customDate" class="date-input" type="date" onchange="setRange('custom')"></div>
+      <div id="employeeFilter" class="employee-filter"></div><div id="status" class="status">正在加载看板...</div>
     </div>
-
     <div class="metric-grid" id="metricGrid"></div>
-
-    <div class="card">
-      <h2>卖进排行</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:58px;">排名</th>
-              <th>员工</th>
-              <th style="width:120px;">卖进金额</th>
-              <th style="width:90px;">单据</th>
-              <th style="width:110px;">卖进门店数</th>
-              <th style="width:130px;">客单价</th>
-              <th style="width:110px;">最近开单</th>
-            </tr>
-          </thead>
-          <tbody id="employeeRankRows"></tbody>
-        </table>
-      </div>
-    </div>
+    <div class="card"><h2>卖进排行</h2><div class="table-wrap"><table><thead><tr><th style="width:58px;">排名</th><th>员工</th><th style="width:120px;">卖进金额</th><th style="width:90px;">单据</th><th style="width:110px;">卖进门店数</th><th style="width:130px;">客单价</th><th style="width:110px;">最近开单</th></tr></thead><tbody id="employeeRankRows"></tbody></table></div></div>
   </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
 const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co";
 const SUPABASE_KEY = "sb" + "_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 let currentRange = 'month';
 let selectedEmployeeCode = '';
 let dashboardOrders = [];
 let dashboardEmployees = [];
 let dashboardEmployeeMap = new Map();
-
-function esc(v) {
-  return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-}
-function money(value) {
-  return Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 });
-}
-function formatDate(value) {
-  if (!value) return '-';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
-  return `${d.getMonth() + 1}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-function formatDateOnly(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function getStartDate() {
-  const now = new Date();
-  if (currentRange === 'all') return null;
-  if (currentRange === 'custom') {
-    const value = document.getElementById('customDate').value;
-    return value ? new Date(`${value}T00:00:00`) : null;
+function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function money(value) { return Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+function formatDate(value) { if (!value) return '-'; const d = new Date(value); if (Number.isNaN(d.getTime())) return String(value).slice(0, 10); return `${d.getMonth() + 1}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+function formatDateOnly(value) { if (!value) return ''; const d = new Date(value); if (Number.isNaN(d.getTime())) return String(value).slice(0, 10); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function getStartDate() { const now = new Date(); if (currentRange === 'all') return null; if (currentRange === 'custom') { const value = document.getElementById('customDate').value; return value ? new Date(`${value}T00:00:00`) : null; } if (currentRange === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate()); if (currentRange === '7d') { const d = new Date(now); d.setDate(d.getDate() - 6); d.setHours(0, 0, 0, 0); return d; } return new Date(now.getFullYear(), now.getMonth(), 1); }
+function getEndDate() { if (currentRange !== 'custom') return null; const value = document.getElementById('customDate').value; return value ? new Date(`${value}T23:59:59`) : null; }
+function setStatus(msg, cls='') { const el = document.getElementById('status'); el.className = 'status ' + cls; el.textContent = msg; }
+function hideStatus() { const el = document.getElementById('status'); el.className = 'status hide'; el.textContent = ''; }
+function setRange(range) { currentRange = range; ['today','7d','month','all'].forEach(key => { const btn = document.getElementById('range_' + key); if (!btn) return; btn.classList.toggle('primary', key === range); }); if (range !== 'custom') document.getElementById('customDate').value = ''; loadDashboard(); }
+function setEmployeeFilter(code) { selectedEmployeeCode = String(code || ''); renderDashboard(); }
+function filterOrdersByEmployee(orders) { if (!selectedEmployeeCode) return orders; return orders.filter(order => String(order.employee_code || '') === selectedEmployeeCode); }
+function getFilteredOrders() { return filterOrdersByEmployee(dashboardOrders); }
+function buildEmployeeOptions(orders, employees) { const activeCodes = new Set(orders.map(order => String(order.employee_code || '')).filter(Boolean)); return (employees || []).filter(emp => activeCodes.has(String(emp.employee_code || ''))).map(emp => ({ code:String(emp.employee_code || ''), name:emp.name || emp.employee_code || '' })).sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric:true })); }
+function renderEmployeeFilter() { const box = document.getElementById('employeeFilter'); const options = buildEmployeeOptions(dashboardOrders, dashboardEmployees); const hasSelected = !selectedEmployeeCode || options.some(emp => emp.code === selectedEmployeeCode); if (!hasSelected) selectedEmployeeCode = ''; box.innerHTML = [`<button class="employee-chip ${selectedEmployeeCode ? '' : 'active'}" onclick="setEmployeeFilter('')">全部</button>`, ...options.map(emp => `<button class="employee-chip ${selectedEmployeeCode === emp.code ? 'active' : ''}" onclick="setEmployeeFilter('${esc(emp.code)}')">${esc(emp.name)}</button>`)].join(''); }
+function renderMetrics(metrics) { document.getElementById('metricGrid').innerHTML = `<div class="metric"><div class="label">卖进金额</div><div class="value">${money(metrics.totalAmount)}</div></div><div class="metric"><div class="label">卖进单据</div><div class="value">${metrics.orderCount}</div></div><div class="metric"><div class="label">卖进门店数</div><div class="value">${metrics.storeCount}</div></div><div class="metric"><div class="label">平均客单价</div><div class="value">${money(metrics.avgOrderAmount)}</div></div>`; }
+function renderEmployeeRank(rows) { const tbody = document.getElementById('employeeRankRows'); if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty">暂无卖进数据</div></td></tr>'; return; } tbody.innerHTML = rows.map((row, index) => `<tr><td><span class="rank">${index + 1}</span></td><td><strong>${esc(row.name || row.employee_code)}</strong></td><td class="amount">${money(row.totalAmount)}</td><td>${row.orderCount}</td><td>${row.storeCount}</td><td>${money(row.avgOrderAmount)}</td><td>${esc(formatDate(row.lastOrderAt))}</td></tr>`).join(''); }
+function buildEmployeeRows(orders, employees) { const employeeMap = new Map((employees || []).map(emp => [String(emp.employee_code || ''), emp])); const group = new Map(); orders.forEach(order => { const code = String(order.employee_code || ''); if (!code) return; if (!group.has(code)) group.set(code, { employee_code: code, name: employeeMap.get(code)?.name || '', totalAmount: 0, orderCount: 0, stores: new Set(), lastOrderAt: '' }); const row = group.get(code); row.totalAmount += Number(order.total_amount || 0); row.orderCount += 1; if (order.atom_code) row.stores.add(String(order.atom_code)); if (!row.lastOrderAt || String(order.created_at || '') > String(row.lastOrderAt)) row.lastOrderAt = order.created_at || ''; }); return Array.from(group.values()).map(row => ({ ...row, storeCount: row.stores.size, avgOrderAmount: row.orderCount ? row.totalAmount / row.orderCount : 0 })).sort((a, b) => b.totalAmount - a.totalAmount || b.orderCount - a.orderCount || String(a.employee_code).localeCompare(String(b.employee_code), 'zh-CN', { numeric:true })); }
+function buildMetrics(orders) { const totalAmount = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0); return { totalAmount, orderCount: orders.length, storeCount: new Set(orders.map(order => String(order.atom_code || '')).filter(Boolean)).size, avgOrderAmount: orders.length ? totalAmount / orders.length : 0 }; }
+function renderDashboard() { renderEmployeeFilter(); const filteredOrders = getFilteredOrders(); renderMetrics(buildMetrics(filteredOrders)); renderEmployeeRank(buildEmployeeRows(filteredOrders, dashboardEmployees)); hideStatus(); }
+function applyExportStyles(worksheet, data, storeKeys) {
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  const border = { top:{style:'thin',color:{rgb:'E7E1E8'}}, bottom:{style:'thin',color:{rgb:'E7E1E8'}}, left:{style:'thin',color:{rgb:'E7E1E8'}}, right:{style:'thin',color:{rgb:'E7E1E8'}} };
+  const headerStyle = { fill:{patternType:'solid',fgColor:{rgb:'4A154B'}}, font:{color:{rgb:'FFFFFF'},bold:true}, alignment:{horizontal:'center',vertical:'center'}, border };
+  const whiteStyle = { fill:{patternType:'solid',fgColor:{rgb:'FFFFFF'}}, alignment:{vertical:'center'}, border };
+  const grayStyle = { fill:{patternType:'solid',fgColor:{rgb:'F4F2F5'}}, alignment:{vertical:'center'}, border };
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const ref = XLSX.utils.encode_cell({ r:0, c });
+    if (worksheet[ref]) worksheet[ref].s = headerStyle;
   }
-  if (currentRange === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (currentRange === '7d') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 6);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  return new Date(now.getFullYear(), now.getMonth(), 1);
-}
-function getEndDate() {
-  if (currentRange !== 'custom') return null;
-  const value = document.getElementById('customDate').value;
-  return value ? new Date(`${value}T23:59:59`) : null;
-}
-function setStatus(msg, cls='') {
-  const el = document.getElementById('status');
-  el.className = 'status ' + cls;
-  el.textContent = msg;
-}
-function hideStatus() {
-  const el = document.getElementById('status');
-  el.className = 'status hide';
-  el.textContent = '';
-}
-function setRange(range) {
-  currentRange = range;
-  ['today','7d','month','all'].forEach(key => {
-    const btn = document.getElementById('range_' + key);
-    if (!btn) return;
-    btn.classList.toggle('primary', key === range);
-  });
-  if (range !== 'custom') document.getElementById('customDate').value = '';
-  loadDashboard();
-}
-function setEmployeeFilter(code) {
-  selectedEmployeeCode = String(code || '');
-  renderDashboard();
-}
-function filterOrdersByEmployee(orders) {
-  if (!selectedEmployeeCode) return orders;
-  return orders.filter(order => String(order.employee_code || '') === selectedEmployeeCode);
-}
-function getFilteredOrders() {
-  return filterOrdersByEmployee(dashboardOrders);
-}
-function buildEmployeeOptions(orders, employees) {
-  const activeCodes = new Set(orders.map(order => String(order.employee_code || '')).filter(Boolean));
-  return (employees || [])
-    .filter(emp => activeCodes.has(String(emp.employee_code || '')))
-    .map(emp => ({ code:String(emp.employee_code || ''), name:emp.name || emp.employee_code || '' }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric:true }));
-}
-function renderEmployeeFilter() {
-  const box = document.getElementById('employeeFilter');
-  const options = buildEmployeeOptions(dashboardOrders, dashboardEmployees);
-  const hasSelected = !selectedEmployeeCode || options.some(emp => emp.code === selectedEmployeeCode);
-  if (!hasSelected) selectedEmployeeCode = '';
-  box.innerHTML = [
-    `<button class="employee-chip ${selectedEmployeeCode ? '' : 'active'}" onclick="setEmployeeFilter('')">全部</button>`,
-    ...options.map(emp => `<button class="employee-chip ${selectedEmployeeCode === emp.code ? 'active' : ''}" onclick="setEmployeeFilter('${esc(emp.code)}')">${esc(emp.name)}</button>`)
-  ].join('');
-}
-function renderMetrics(metrics) {
-  document.getElementById('metricGrid').innerHTML = `
-    <div class="metric"><div class="label">卖进金额</div><div class="value">${money(metrics.totalAmount)}</div></div>
-    <div class="metric"><div class="label">卖进单据</div><div class="value">${metrics.orderCount}</div></div>
-    <div class="metric"><div class="label">卖进门店数</div><div class="value">${metrics.storeCount}</div></div>
-    <div class="metric"><div class="label">平均客单价</div><div class="value">${money(metrics.avgOrderAmount)}</div></div>
-  `;
-}
-function renderEmployeeRank(rows) {
-  const tbody = document.getElementById('employeeRankRows');
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty">暂无卖进数据</div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = rows.map((row, index) => `
-    <tr>
-      <td><span class="rank">${index + 1}</span></td>
-      <td><strong>${esc(row.name || row.employee_code)}</strong></td>
-      <td class="amount">${money(row.totalAmount)}</td>
-      <td>${row.orderCount}</td>
-      <td>${row.storeCount}</td>
-      <td>${money(row.avgOrderAmount)}</td>
-      <td>${esc(formatDate(row.lastOrderAt))}</td>
-    </tr>
-  `).join('');
-}
-function buildEmployeeRows(orders, employees) {
-  const employeeMap = new Map((employees || []).map(emp => [String(emp.employee_code || ''), emp]));
-  const group = new Map();
-  orders.forEach(order => {
-    const code = String(order.employee_code || '');
-    if (!code) return;
-    if (!group.has(code)) {
-      group.set(code, { employee_code: code, name: employeeMap.get(code)?.name || '', totalAmount: 0, orderCount: 0, stores: new Set(), lastOrderAt: '' });
+  let lastStore = '', groupIndex = -1;
+  for (let r = 1; r < data.length; r++) {
+    const storeKey = storeKeys[r - 1] || '';
+    if (storeKey !== lastStore) { groupIndex += 1; lastStore = storeKey; }
+    const rowStyle = groupIndex % 2 === 0 ? whiteStyle : grayStyle;
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      if (!worksheet[ref]) worksheet[ref] = { t:'s', v:'' };
+      worksheet[ref].s = rowStyle;
+      if (c === 6) worksheet[ref].t = 's';
     }
-    const row = group.get(code);
-    row.totalAmount += Number(order.total_amount || 0);
-    row.orderCount += 1;
-    if (order.atom_code) row.stores.add(String(order.atom_code));
-    if (!row.lastOrderAt || String(order.created_at || '') > String(row.lastOrderAt)) row.lastOrderAt = order.created_at || '';
-  });
-  return Array.from(group.values()).map(row => ({ ...row, storeCount: row.stores.size, avgOrderAmount: row.orderCount ? row.totalAmount / row.orderCount : 0 })).sort((a, b) => b.totalAmount - a.totalAmount || b.orderCount - a.orderCount || String(a.employee_code).localeCompare(String(b.employee_code), 'zh-CN', { numeric:true }));
-}
-function buildMetrics(orders) {
-  const totalAmount = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
-  return { totalAmount, orderCount: orders.length, storeCount: new Set(orders.map(order => String(order.atom_code || '')).filter(Boolean)).size, avgOrderAmount: orders.length ? totalAmount / orders.length : 0 };
-}
-function renderDashboard() {
-  renderEmployeeFilter();
-  const filteredOrders = getFilteredOrders();
-  renderMetrics(buildMetrics(filteredOrders));
-  renderEmployeeRank(buildEmployeeRows(filteredOrders, dashboardEmployees));
-  hideStatus();
+  }
+  worksheet['!rows'] = [{ hpt: 24 }, ...Array(Math.max(0, data.length - 1)).fill({ hpt: 22 })];
+  worksheet['!autofilter'] = { ref: worksheet['!ref'] };
+  worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
 }
 async function exportOrderExcel() {
   if (!window.XLSX) { alert('Excel 导出组件加载失败，请刷新页面后重试'); return; }
@@ -295,7 +143,7 @@ async function exportOrderExcel() {
     productMap = new Map((productRes.data || []).map(p => [String(p.barcode || ''), p]));
   }
   const orderMap = new Map(orders.map(order => [String(order.order_no || ''), order]));
-  const data = [['开单日期', '员工', '员工号', '门店编号', '门店', '商品名', '条码', '价格', '散数']];
+  const rows = [];
   items.forEach(item => {
     const order = orderMap.get(String(item.order_no || ''));
     if (!order) return;
@@ -303,15 +151,22 @@ async function exportOrderExcel() {
     const emp = dashboardEmployeeMap.get(code);
     const barcode = String(item.barcode || '');
     const product = productMap.get(barcode);
-    data.push([formatDateOnly(order.created_at), emp?.name || code, code, String(order.atom_code || ''), order.store_name || '', item.product_name || product?.name || barcode, barcode, Number(item.unit_price || 0), Number(item.qty || 0)]);
+    rows.push({
+      storeKey: `${String(order.atom_code || '')}|${order.store_name || ''}`,
+      values: [formatDateOnly(order.created_at), emp?.name || code, code, String(order.atom_code || ''), order.store_name || '', product?.name || item.product_name || barcode, barcode, Number(item.unit_price || 0), Number(item.qty || 0)]
+    });
   });
+  rows.sort((a, b) => a.storeKey.localeCompare(b.storeKey, 'zh-CN', { numeric:true }) || String(a.values[0]).localeCompare(String(b.values[0])) || String(a.values[5]).localeCompare(String(b.values[5]), 'zh-CN', { numeric:true }));
+  const data = [['开单日期', '员工', '员工号', '门店编号', '门店', '商品名', '条码', '价格', '散数'], ...rows.map(r => r.values)];
+  const storeKeys = rows.map(r => r.storeKey);
   if (data.length === 1) { alert('当前筛选没有开单明细可导出'); return; }
   const worksheet = XLSX.utils.aoa_to_sheet(data);
   worksheet['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 38 }, { wch: 18 }, { wch: 10 }, { wch: 10 }];
+  applyExportStyles(worksheet, data, storeKeys);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, '开单明细');
   const stamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(workbook, `开单明细_${stamp}.xlsx`);
+  XLSX.writeFile(workbook, `开单明细_${stamp}.xlsx`, { cellStyles:true });
 }
 async function loadDashboard() {
   setStatus('正在加载看板...');
