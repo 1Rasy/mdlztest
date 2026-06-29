@@ -16,6 +16,26 @@ function assertIncludes(content, expected, message) {
 assert.ok(existsSync(join(root, 'dashboard.html')), 'dashboard.html should exist');
 
 const dashboard = readHtml('dashboard.html');
+const store = readHtml('store.html');
+
+assertIncludes(store, 'html2canvas@1.4.1', 'store should load html2canvas for delivery note image generation');
+assertIncludes(store, "event.stopPropagation(); generateDeliveryNote", 'history cards should generate delivery notes without opening detail');
+assertIncludes(store, 'async function getDeliveryNoteRows(orderNo)', 'store should fetch and aggregate delivery note rows');
+assertIncludes(store, 'function buildDeliveryNoteHtml', 'store should build a printable delivery note DOM');
+assertIncludes(store, 'async function generateDeliveryNote(orderNo,orderDate)', 'store should generate a delivery note image from an order');
+assertIncludes(store, 'function showDeliveryImage(imgUrl,fileName)', 'store should preview generated delivery note images in-page');
+assertIncludes(store, 'function amountToChineseUpper(amount)', 'store should convert total amount to Chinese uppercase RMB');
+assertIncludes(store, 'brand', 'delivery note aggregation should use product brand');
+assertIncludes(store, 'spec', 'delivery note aggregation should use product spec');
+assertIncludes(store, 'sale_unit', 'delivery note aggregation should support new sale unit fields');
+assertIncludes(store, 'sale_qty', 'delivery note aggregation should support new sale quantity fields');
+assertIncludes(store, 'sale_unit_price', 'delivery note aggregation should support new sale unit price fields');
+assertIncludes(store, 'pcs_per_box', 'delivery note aggregation should split old order quantities by box size');
+assertIncludes(store, 'pcs_per_case', 'delivery note aggregation should split old order quantities by case size');
+assertIncludes(store, 'delivery-note-overlay', 'store should render an in-page delivery note preview overlay');
+assertIncludes(store, 'delivery-note-sheet', 'store should render a black and white printable delivery note sheet');
+assert.ok(!store.includes('deliveryOrderNo'), 'delivery note should not expose system order number in the visible template');
+assert.ok(!store.includes('deliveryBarcode'), 'delivery note should not expose barcodes in the visible template');
 assertIncludes(dashboard, "location.href='store_import.html'", 'dashboard links to store import');
 assertIncludes(dashboard, "location.href='stock_import.html'", 'dashboard links to stock import');
 assertIncludes(dashboard, "location.href='stock_summary.html'", 'dashboard links to stock summary');
