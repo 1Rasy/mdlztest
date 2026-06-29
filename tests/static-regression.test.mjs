@@ -16,7 +16,7 @@ function assertIncludes(content, expected, message) {
 assert.ok(existsSync(join(root, 'dashboard.html')), 'dashboard.html should exist');
 
 const dashboard = readHtml('dashboard.html');
-const store = readHtml('store.html');
+const store = readHtml('store.html') + '\n' + readHtml('store-style.css') + '\n' + readHtml('store-app.js');
 
 assertIncludes(store, 'html2canvas@1.4.1', 'store should load html2canvas for delivery note image generation');
 assertIncludes(store, "event.stopPropagation(); generateDeliveryNote", 'history cards should generate delivery notes without opening detail');
