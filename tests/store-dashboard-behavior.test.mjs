@@ -17,7 +17,7 @@ assert.ok(storeApp.includes('整=扣 ${packSize(p)}${unitOf(p)}'), 'order produc
 assert.ok(!storeApp.includes('散=扣 1'), 'order product hint should remove loose-unit explanation');
 
 assert.ok(storeApp.includes('function syncSpecFlavorPrice'), 'order price changes should sync same brand/spec flavor prices');
-assert.ok(storeApp.includes("syncSpecFlavorPrice(id,key,Number(value)||0)"), 'changePrice should call price sync before recalculating totals');
+assert.ok(storeApp.includes('const price=Number(value)||0;syncSpecFlavorPrice(id,key,price);syncSpecFlavorPriceInputs(id,key,price);calculateLiveOrderAmounts()'), 'changePrice should sync data and visible inputs before recalculating totals');
 assert.ok(storeApp.includes('target.brand===source.brand&&target.spec===source.spec'), 'price sync should be scoped to same brand and spec');
 
 assert.ok(dashboard.includes('function renderTrendLine'), 'dashboard should render trend as a line chart helper');
