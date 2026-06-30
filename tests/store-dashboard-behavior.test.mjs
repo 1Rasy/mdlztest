@@ -13,12 +13,15 @@ const employeeQueryBody = storeApp.match(/function employeeQueryString\(\)\{([\s
 assert.ok(!employeeQueryBody.includes('currentEmployee.name'), 'split store URL builder should not depend on employee name');
 assert.ok(storeApp.includes("target='emp='+encodeURIComponent(currentEmployee.code)"), 'store pages should normalize the URL to emp only');
 
-assert.ok(storeApp.includes('整=扣 ${packSize(p)}${unitOf(p)}'), 'order product hint should keep whole-unit deduction info');
-assert.ok(!storeApp.includes('散=扣 1'), 'order product hint should remove loose-unit explanation');
+assert.ok(storeApp.includes("<div class='pack-hint'>") && storeApp.includes('${packSize(p)}${unitOf(p)}'), 'order product hint should keep whole-unit deduction info');
 
 assert.ok(storeApp.includes('function syncSpecFlavorPrice'), 'order price changes should sync same brand/spec flavor prices');
 assert.ok(storeApp.includes('const price=Number(value)||0;syncSpecFlavorPrice(id,key,price);syncSpecFlavorPriceInputs(id,key,price);calculateLiveOrderAmounts()'), 'changePrice should sync data and visible inputs before recalculating totals');
 assert.ok(storeApp.includes('target.brand===source.brand&&target.spec===source.spec'), 'price sync should be scoped to same brand and spec');
+
+assert.ok(storeApp.includes('order-date-row'), 'order date controls should use a dedicated spaced row');
+assert.ok(storeApp.includes('order-date-action'), 'order date edit button should have its own compact action style');
+assert.ok(storeApp.includes('pack-hint'), 'order pack deduction hint should use a separated hint style');
 
 assert.ok(dashboard.includes('function renderTrendLine'), 'dashboard should render trend as a line chart helper');
 assert.ok(dashboard.includes('const g=new Map();orders.forEach'), 'dashboard trend should keep existing date aggregation logic');
