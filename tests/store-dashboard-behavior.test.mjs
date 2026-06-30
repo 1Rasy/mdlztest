@@ -27,3 +27,11 @@ assert.ok(dashboard.includes('function renderTrendLine'), 'dashboard should rend
 assert.ok(dashboard.includes('const g=new Map();orders.forEach'), 'dashboard trend should keep existing date aggregation logic');
 assert.ok(dashboard.includes('<polyline'), 'dashboard trend should use an SVG polyline');
 assert.ok(!dashboard.includes('background:var(--primary);border-radius:8px 8px 2px 2px'), 'dashboard trend should no longer render bar columns');
+assert.ok(dashboard.includes('customStartDate') && dashboard.includes('customEndDate'), 'dashboard date filters should expose start and end date inputs');
+assert.ok(dashboard.includes('function setCustomRange'), 'dashboard should support selecting a custom date range');
+assert.ok(dashboard.includes('normalizeCustomDateRange'), 'dashboard should normalize reversed custom date ranges');
+assert.ok(dashboard.includes('function getExportDateLabel'), 'dashboard export filename should use active date range label');
+assert.ok(dashboard.includes('XLSX.writeFile(wb,getExportFileName()'), 'dashboard export filename should include the selected date range');
+assert.ok(!dashboard.includes('trend-summary'), 'dashboard trend should not show extra text summary above the line');
+assert.ok(!dashboard.includes('preserveAspectRatio="none"'), 'dashboard trend SVG should avoid non-uniform scaling that distorts circles');
+assert.ok(dashboard.includes('preserveAspectRatio="xMidYMid meet"'), 'dashboard trend SVG should keep circles round');
