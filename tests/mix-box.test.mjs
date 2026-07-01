@@ -28,3 +28,10 @@ assert.ok(productsPage.includes("field === 'allow_mix_box'"), 'products page fil
 assert.ok(productsPage.includes('filterBtn_allow_mix_box'), 'products page should render a mix-box column header');
 assert.ok(productsPage.includes('data-field="allow_mix_box"'), 'products page should render row checkbox for allow_mix_box');
 assert.ok(mixBoxSql.includes('add column if not exists allow_mix_box boolean not null default false'), 'allow_mix_box migration should add the product flag safely');
+
+const dashboardPage = readFileSync(join(root, 'dashboard.html'), 'utf8');
+assert.ok(storeApp.includes("saleUnit.includes('\\u62fc\\u76d2')"), 'delivery note should recognize mixed-box sale units');
+assert.ok(storeApp.includes('row.wholeQty+=saleQty/wholeSize'), 'delivery note should convert mixed loose quantities to whole boxes');
+assert.ok(dashboardPage.includes('pcs_per_box'), 'dashboard export should load box size for mixed boxes');
+assert.ok(dashboardPage.includes("saleUnit==='\u62fc\u76d2'"), 'dashboard should export mixed boxes as whole boxes');
+assert.ok(dashboardPage.includes('r.wholeQty+=saleQty/mixSize'), 'dashboard mixed boxes should use sale_qty divided by pcs_per_box');
