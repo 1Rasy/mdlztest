@@ -128,6 +128,28 @@
     return normalizeReturnQty(it?.afterSaleQty);
   }
 
+  const originalTemplateEditOrNew = typeof templateEditOrNew === 'function' ? templateEditOrNew : null;
+  if(originalTemplateEditOrNew){
+    templateEditOrNew = function(orderNo=null, orderDate=null, rawItemsEncoded=null, atom=null, name=null){
+      originalTemplateEditOrNew(orderNo, orderDate, rawItemsEncoded, atom, name);
+      if(!orderNo || !rawItemsEncoded || !orderData?.items) return;
+      try{
+        const items = JSON.parse(decodeURIComponent(rawItemsEncoded));
+        let restored = false;
+        items.forEach(it=>{
+          if(String(it.sale_unit||'') !== '售后') return;
+          const id = String(it.barcode||'');
+          if(!orderData.items[id]) return;
+          orderData.items[id].afterSaleQty = afterSaleQtyForItem(orderData.items[id]) + Math.abs(Number(it.qty||0));
+          restored = true;
+        });
+        if(restored) renderOrder();
+      }catch(err){
+        console.warn('售后数量恢复失败', err);
+      }
+    };
+  }
+
   submitOrder = async function(){
     let grand = 0;
     Object.keys(orderData.items).forEach(id=>{
