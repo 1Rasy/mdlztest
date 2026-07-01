@@ -35,3 +35,7 @@ assert.ok(storeApp.includes('row.wholeQty+=saleQty/wholeSize'), 'delivery note s
 assert.ok(dashboardPage.includes('pcs_per_box'), 'dashboard export should load box size for mixed boxes');
 assert.ok(dashboardPage.includes("saleUnit==='\u62fc\u76d2'"), 'dashboard should export mixed boxes as whole boxes');
 assert.ok(dashboardPage.includes('r.wholeQty+=saleQty/mixSize'), 'dashboard mixed boxes should use sale_qty divided by pcs_per_box');
+
+assert.ok(storeApp.includes('class="mix-box-count"'), 'mix-box count should render outside the button');
+assert.ok(storeApp.includes('>\u70b9\u51fb\u62fc\u76d2</button>'), 'mix-box button should say click mix box only');
+assert.ok(!storeApp.includes('class="mix-box-amount"'), 'mix-box row should not show a live changing amount');

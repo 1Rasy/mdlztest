@@ -42,3 +42,12 @@ assert.ok(dashboard.includes('XLSX.writeFile(wb,getExportFileName()'), 'dashboar
 assert.ok(!dashboard.includes('trend-summary'), 'dashboard trend should not show extra text summary above the line');
 assert.ok(!dashboard.includes('preserveAspectRatio="none"'), 'dashboard trend SVG should avoid non-uniform scaling that distorts circles');
 assert.ok(dashboard.includes('preserveAspectRatio="xMidYMid meet"'), 'dashboard trend SVG should keep circles round');
+
+assert.ok(storeApp.includes("selectedReportDate='all'"), 'store report state should default to all');
+assert.ok(storeApp.includes("openSaleReport('all')"), 'store report entry should default to all');
+assert.ok(storeApp.includes("['custom','\u65e5\u671f\u9009\u62e9']"), 'store report filters should append a date selection button');
+assert.ok(storeApp.includes('type="date" class="real-date-input"'), 'store report date selection should use a native date input');
+assert.ok(!storeApp.includes('\ud83d\udcb5 <strong>\u5b9e\u65f6\u9884\u4f30\u5b9e\u6536'), 'order page should not show money icon or receipt wording in live amount');
+assert.ok(!storeApp.includes('\ud83d\udcb5 \u5b9e\u6536\uff1a'), 'history/report cards should not show receipt wording');
+assert.ok(!storeApp.includes('\u603b\u5b9e\u6536\uff1a'), 'report summary should not show total receipt wording');
+assert.ok(!storeApp.includes('\u8d26\u5355\u5b9e\u6536\uff1a'), 'order detail should not show receipt wording');
