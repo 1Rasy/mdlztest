@@ -1,5 +1,5 @@
 (function(){
-  const QUICK_NUMBERS = Array.from({ length: 16 }, (_, i) => i + 1);
+  const QUICK_NUMBERS = Array.from({ length: 25 }, (_, i) => i + 1);
   const STATE = {
     select: null,
     trigger: null,
@@ -48,14 +48,13 @@
     mask.innerHTML = `
       <div class="qty-popup-sheet" role="dialog" aria-modal="true" aria-labelledby="qtyPopupTitle">
         <div class="qty-popup-head">
-          <div>
+          <div class="qty-popup-title-wrap">
             <div id="qtyPopupTitle" class="qty-popup-title">选择数量</div>
-            <div id="qtyPopupHint" class="qty-popup-hint">点一下数量立即生效</div>
           </div>
           <button type="button" class="qty-popup-close" data-qty-action="close" aria-label="关闭">×</button>
         </div>
         <div id="qtyPopupCurrent" class="qty-popup-current">当前：0</div>
-        <div id="qtyPopupGrid" class="qty-popup-grid qty-popup-grid-4"></div>
+        <div id="qtyPopupGrid" class="qty-popup-grid qty-popup-grid-5"></div>
         <button type="button" class="qty-popup-clear" data-qty-action="clear">清零</button>
       </div>`;
     mask.addEventListener('click', handlePopupClick);
@@ -98,7 +97,6 @@
     const unit = unitNameForSelect(select);
     const title = `${productNameForSelect(select)} · ${labelForKey(meta.key)}`;
     document.getElementById('qtyPopupTitle').textContent = title;
-    document.getElementById('qtyPopupHint').textContent = `直接点 1–16，立即选择${unit ? '（' + unit + '）' : ''}`;
     document.getElementById('qtyPopupCurrent').textContent = `当前：${normalizeQty(select.value)}${unit}`;
     renderGrid();
 
