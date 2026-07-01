@@ -39,3 +39,8 @@ assert.ok(dashboardPage.includes('r.wholeQty+=saleQty/mixSize'), 'dashboard mixe
 assert.ok(storeApp.includes('class="mix-box-count"'), 'mix-box count should render outside the button');
 assert.ok(storeApp.includes('>\u70b9\u51fb\u62fc\u76d2</button>'), 'mix-box button should say click mix box only');
 assert.ok(!storeApp.includes('class="mix-box-amount"'), 'mix-box row should not show a live changing amount');
+
+const storeStyle = readFileSync(join(root, 'store-style.css'), 'utf8');
+assert.ok(storeStyle.includes('grid-template-columns:96px 58px 34px 78px'), 'mix-box header should use stable fixed columns');
+assert.ok(storeStyle.includes('width:96px'), 'mix-box button should use stable fixed sizing');
+assert.ok(storeStyle.includes('min-width:58px'), 'mix-box count should not resize when quantity changes');

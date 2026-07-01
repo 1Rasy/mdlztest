@@ -43,11 +43,17 @@ assert.ok(!dashboard.includes('trend-summary'), 'dashboard trend should not show
 assert.ok(!dashboard.includes('preserveAspectRatio="none"'), 'dashboard trend SVG should avoid non-uniform scaling that distorts circles');
 assert.ok(dashboard.includes('preserveAspectRatio="xMidYMid meet"'), 'dashboard trend SVG should keep circles round');
 
-assert.ok(storeApp.includes("selectedReportDate='all'"), 'store report state should default to all');
-assert.ok(storeApp.includes("openSaleReport('all')"), 'store report entry should default to all');
+assert.ok(storeApp.includes("selectedReportDate='today'"), 'store report state should default to today');
+assert.ok(storeApp.includes("openSaleReport('today')"), 'store report entry should default to today');
 assert.ok(storeApp.includes("['custom','\u65e5\u671f\u9009\u62e9']"), 'store report filters should append a date selection button');
 assert.ok(storeApp.includes('type="date" class="real-date-input"'), 'store report date selection should use a native date input');
-assert.ok(!storeApp.includes('\ud83d\udcb5 <strong>\u5b9e\u65f6\u9884\u4f30\u5b9e\u6536'), 'order page should not show money icon or receipt wording in live amount');
-assert.ok(!storeApp.includes('\ud83d\udcb5 \u5b9e\u6536\uff1a'), 'history/report cards should not show receipt wording');
-assert.ok(!storeApp.includes('\u603b\u5b9e\u6536\uff1a'), 'report summary should not show total receipt wording');
-assert.ok(!storeApp.includes('\u8d26\u5355\u5b9e\u6536\uff1a'), 'order detail should not show receipt wording');
+assert.ok(storeApp.includes('\u5b9e\u6536\uff1a${money(s)}'), 'order page should show receipt wording in live amount');
+assert.ok(!storeApp.includes('\ud83d\udcb5'), 'store app should not show money icon');
+assert.ok(storeApp.includes('\u5b9e\u6536\uff1a${money(o.saleSum||0)}'), 'history cards should show receipt wording');
+assert.ok(storeApp.includes('\u5b9e\u6536\uff1a${money(r.netRevenue)}'), 'report cards should show receipt wording');
+assert.ok(storeApp.includes('\u603b\u5b9e\u6536\uff1a${money(netSum)}'), 'report summary should show total receipt wording');
+assert.ok(storeApp.includes('\u5b9e\u6536\uff1a${money(sum)}'), 'order detail should show receipt wording');
+
+assert.ok(storeApp.includes('function openReportDatePicker'), 'report date selection should open picker from a button');
+assert.ok(storeApp.includes('onchange="handleReportCustomDate(this.value)"'), 'report date selection should only apply after a date change');
+assert.ok(!storeApp.includes('onchange="openSaleReport(\'custom\',this.value)"'), 'report date input should not auto-confirm today on first open');
