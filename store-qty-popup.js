@@ -170,3 +170,20 @@
     }
   });
 })();
+
+(function(){
+  if(typeof window.validateMixBoxGroups !== 'function') return;
+  window.validateMixBoxGroups = function(){
+    for(const list of mixBoxGroups()){
+      const qty = getMixBoxQty(list);
+      const size = mixBoxSize(list);
+      if(qty > 0 && size > 0 && qty % size !== 0){
+        const first = list[0] || {};
+        const productName = `${first.brand || ''}${first.spec || ''}`.trim() || first.product_name || '拼盒商品';
+        const unit = unitOf(first);
+        return `\n${productName}\n已选${qty}${unit}，必须按${size}的倍数整盒提交`;
+      }
+    }
+    return '';
+  };
+})();
