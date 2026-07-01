@@ -1,12 +1,11 @@
 (function(){
+  const QUICK_NUMBERS = Array.from({ length: 16 }, (_, i) => i + 1);
   const STATE = {
     select: null,
     trigger: null,
     productId: '',
     key: '',
-    max: 100,
-    value: '0',
-    firstInput: true
+    max: 100
   };
 
   function parseQtySelect(select){
@@ -51,62 +50,36 @@
         <div class="qty-popup-head">
           <div>
             <div id="qtyPopupTitle" class="qty-popup-title">选择数量</div>
-            <div id="qtyPopupHint" class="qty-popup-hint"></div>
+            <div id="qtyPopupHint" class="qty-popup-hint">点一下数量立即生效</div>
           </div>
           <button type="button" class="qty-popup-close" data-qty-action="close" aria-label="关闭">×</button>
         </div>
-        <div id="qtyPopupDisplay" class="qty-popup-display">0</div>
-        <div id="qtyPopupNotice" class="qty-popup-notice"></div>
-        <div class="qty-popup-grid">
-          ${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" data-qty-num="${n}">${n}</button>`).join('')}
-          <button type="button" class="qty-popup-secondary" data-qty-action="clear">清零</button>
-          <button type="button" data-qty-num="0">0</button>
-          <button type="button" class="qty-popup-secondary" data-qty-action="backspace">删除</button>
-        </div>
-        <button type="button" class="qty-popup-confirm" data-qty-action="confirm">确定</button>
+        <div id="qtyPopupCurrent" class="qty-popup-current">当前：0</div>
+        <div id="qtyPopupGrid" class="qty-popup-grid qty-popup-grid-4"></div>
+        <button type="button" class="qty-popup-clear" data-qty-action="clear">清零</button>
       </div>`;
     mask.addEventListener('click', handlePopupClick);
     document.addEventListener('keydown', handlePopupKeydown);
     document.body.appendChild(mask);
   }
 
-  function updatePopupText(notice=''){
-    const display = document.getElementById('qtyPopupDisplay');
-    const noticeBox = document.getElementById('qtyPopupNotice');
-    if(display) display.textContent = normalizeQty(STATE.value);
-    if(noticeBox) noticeBox.textContent = notice;
+  function renderGrid(){
+    const grid = document.getElementById('qtyPopupGrid');
+    if(!grid) return;
+    const current = Number(STATE.select?.value || 0);
+    grid.innerHTML = QUICK_NUMBERS.map(n=>{
+      const disabled = n > STATE.max ? ' disabled' : '';
+      const active = n === current ? ' active' : '';
+      return `<button type="button" class="qty-popup-number${active}" data-qty-value="${n}"${disabled}>${n}</button>`;
+    }).join('');
   }
 
-  function setValue(nextValue){
-    let n = parseInt(nextValue, 10);
-    if(!Number.isFinite(n) || n < 0) n = 0;
-    let notice = '';
-    if(n > STATE.max){
-      n = STATE.max;
-      notice = `最多 ${STATE.max}`;
-    }
-    STATE.value = String(n);
-    updatePopupText(notice);
-  }
-
-  function inputDigit(digit){
-    const base = STATE.firstInput ? '' : normalizeQty(STATE.value);
-    STATE.firstInput = false;
-    setValue((base === '0' ? '' : base) + String(digit));
-  }
-
-  function backspace(){
-    const value = normalizeQty(STATE.value);
-    STATE.firstInput = false;
-    setValue(value.length > 1 ? value.slice(0, -1) : '0');
-  }
-
-  function applyQty(){
+  function applyQty(value){
     if(!STATE.select) return closePopup();
-    const value = Math.max(0, Math.min(STATE.max, parseInt(STATE.value, 10) || 0));
-    STATE.select.value = String(value);
+    const n = Math.max(0, Math.min(STATE.max, parseInt(value, 10) || 0));
+    STATE.select.value = String(n);
     if(typeof window.changeQty === 'function'){
-      window.changeQty(STATE.productId, STATE.key, value);
+      window.changeQty(STATE.productId, STATE.key, n);
     }else{
       STATE.select.dispatchEvent(new Event('change', { bubbles: true }));
     }
@@ -121,14 +94,13 @@
     STATE.productId = meta.id;
     STATE.key = meta.key;
     STATE.max = meta.max;
-    STATE.value = normalizeQty(select.value);
-    STATE.firstInput = true;
 
     const unit = unitNameForSelect(select);
     const title = `${productNameForSelect(select)} · ${labelForKey(meta.key)}`;
     document.getElementById('qtyPopupTitle').textContent = title;
-    document.getElementById('qtyPopupHint').textContent = `点数字输入数量，最多 ${meta.max}${unit}`;
-    updatePopupText('');
+    document.getElementById('qtyPopupHint').textContent = `直接点 1–16，立即选择${unit ? '（' + unit + '）' : ''}`;
+    document.getElementById('qtyPopupCurrent').textContent = `当前：${normalizeQty(select.value)}${unit}`;
+    renderGrid();
 
     document.body.classList.add('qty-popup-open');
     document.getElementById('qtyPopupMask').classList.remove('hide');
@@ -143,21 +115,29 @@
 
   function handlePopupClick(event){
     if(event.target.id === 'qtyPopupMask') return closePopup();
-    const num = event.target.closest('[data-qty-num]');
-    if(num) return inputDigit(num.dataset.qtyNum);
+    const numberBtn = event.target.closest('[data-qty-value]');
+    if(numberBtn) return applyQty(numberBtn.dataset.qtyValue);
     const action = event.target.closest('[data-qty-action]')?.dataset.qtyAction;
     if(action === 'close') return closePopup();
-    if(action === 'clear') return setValue('0');
-    if(action === 'backspace') return backspace();
-    if(action === 'confirm') return applyQty();
+    if(action === 'clear') return applyQty(0);
   }
 
   function handlePopupKeydown(event){
     if(document.getElementById('qtyPopupMask')?.classList.contains('hide')) return;
-    if(/^\d$/.test(event.key)){event.preventDefault();inputDigit(event.key)}
-    else if(event.key === 'Backspace'){event.preventDefault();backspace()}
-    else if(event.key === 'Enter'){event.preventDefault();applyQty()}
-    else if(event.key === 'Escape'){event.preventDefault();closePopup()}
+    if(event.key === 'Escape'){
+      event.preventDefault();
+      closePopup();
+      return;
+    }
+    if(event.key === '0'){
+      event.preventDefault();
+      applyQty(0);
+      return;
+    }
+    if(/^\d$/.test(event.key)){
+      event.preventDefault();
+      applyQty(event.key);
+    }
   }
 
   function bindQtyPopup(){
