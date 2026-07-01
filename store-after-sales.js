@@ -64,7 +64,7 @@
 
       const pricePicker = line.querySelector('select.price-picker');
       pricePicker ? pricePicker.insertAdjacentHTML('afterend', buildAfterSaleInline(id)) : line.insertAdjacentHTML('beforeend', buildAfterSaleInline(id));
-      const picker = line.querySelector(`[data-after-sales-select="${CSS && CSS.escape ? CSS.escape(String(id)) : String(id)}"]`) || Array.from(line.querySelectorAll('[data-after-sales-select]')).find(x=>x.dataset.afterSalesSelect===String(id));
+      const picker = Array.from(line.querySelectorAll('[data-after-sales-select]')).find(x=>x.dataset.afterSalesSelect===String(id));
       picker?.addEventListener('change', event=>setAfterSaleQty(id, event.target.value));
 
       line.insertAdjacentHTML('afterend', buildAfterSaleTip(id));
