@@ -1,4 +1,9 @@
 (function(){
+  const AFTER_SALE_UNIT = '\u552e\u540e';
+  const AFTER_SALE_LABEL = '\u552e\u540e';
+  const AFTER_SALE_PANEL_LABEL = '\u552e\u540e\u6570';
+  const AFTER_SALE_NOTE = '\u53ea\u7b97\u80fd\u5356\u7684\uff0c\u6536\u56de\u589e\u52a0\u5e93\u5b58';
+
   function makeAfterSaleOptions(current){
     const cur = normalizeReturnQty(current);
     let html = '';
@@ -18,6 +23,11 @@
     return Number.isFinite(n) && n > 0 ? n : 0;
   }
 
+  function isAfterSaleUnit(unit){
+    const text = String(unit || '');
+    return text === AFTER_SALE_UNIT || text.includes(AFTER_SALE_UNIT);
+  }
+
   function getAfterSaleQty(id){
     const it = orderData?.items?.[id];
     return normalizeReturnQty(it?.afterSaleQty);
@@ -35,39 +45,59 @@
     return Array.from(document.querySelectorAll('[data-after-sales-wrap]')).filter(wrap=>wrap.dataset.afterSalesWrap === String(id));
   }
 
+  function getAfterSalePanels(id){
+    return Array.from(document.querySelectorAll('[data-after-sales-panel]')).filter(panel=>panel.dataset.afterSalesPanel === String(id));
+  }
+
   function syncAfterSaleControls(id){
     const qty = getAfterSaleQty(id);
     getAfterSaleWraps(id).forEach(wrap=>{
       const btn = wrap.querySelector('[data-after-sales-toggle]');
-      const picker = wrap.querySelector('[data-after-sales-select]');
       if(btn){
-        btn.textContent = qty > 0 ? `售后${qty}` : '售后';
+        btn.textContent = qty > 0 ? `${AFTER_SALE_LABEL}${qty}` : AFTER_SALE_LABEL;
         btn.classList.toggle('has-value', qty > 0);
       }
-      if(picker) picker.value = String(qty);
       wrap.classList.toggle('has-value', qty > 0);
+    });
+    getAfterSalePanels(id).forEach(panel=>{
+      const picker = panel.querySelector('[data-after-sales-select]');
+      if(picker) picker.value = String(qty);
+      panel.classList.toggle('has-value', qty > 0);
     });
   }
 
-  function closeOtherWraps(id){
+  function closeOtherPanels(id){
     document.querySelectorAll('[data-after-sales-wrap]').forEach(wrap=>{
       if(wrap.dataset.afterSalesWrap !== String(id)) wrap.classList.remove('open');
+    });
+    document.querySelectorAll('[data-after-sales-panel]').forEach(panel=>{
+      if(panel.dataset.afterSalesPanel !== String(id)) panel.classList.remove('open');
     });
   }
 
   function toggleAfterSalePanel(id){
     const wrap = getAfterSaleWraps(id)[0];
-    if(!wrap) return;
-    closeOtherWraps(id);
-    wrap.classList.toggle('open');
+    const panel = getAfterSalePanels(id)[0];
+    if(!wrap || !panel) return;
+    const nextOpen = !panel.classList.contains('open');
+    closeOtherPanels(id);
+    wrap.classList.toggle('open', nextOpen);
+    panel.classList.toggle('open', nextOpen);
     syncAfterSaleControls(id);
   }
 
   function buildAfterSaleInline(id){
-    return `<span class="after-sales-wrap" data-after-sales-wrap="${esc(id)}" title="售后只填还能卖的，过期/破损不加库存">
-      <button type="button" class="after-sales-toggle" data-after-sales-toggle="${esc(id)}">售后</button>
-      <select class="ios-picker price-picker after-sales-picker" data-after-sales-select="${esc(id)}">${makeAfterSaleOptions(getAfterSaleQty(id))}</select>
+    return `<span class="after-sales-wrap" data-after-sales-wrap="${esc(id)}">
+      <button type="button" class="after-sales-toggle" data-after-sales-toggle="${esc(id)}">${AFTER_SALE_LABEL}</button>
     </span>`;
+  }
+
+  function buildAfterSalePanel(id){
+    return `<div class="after-sales-panel" data-after-sales-panel="${esc(id)}">
+      <span class="after-sales-panel-label">${AFTER_SALE_PANEL_LABEL}</span>
+      <select class="ios-picker after-sales-picker" data-after-sales-select="${esc(id)}">${makeAfterSaleOptions(getAfterSaleQty(id))}</select>
+      <span class="after-sales-note">${AFTER_SALE_NOTE}</span>
+    </div>`;
   }
 
   function bindAfterSalesControls(){
@@ -75,17 +105,18 @@
     const looseLines = document.querySelectorAll('#list .item .sell-line:not([data-after-sales-bound])');
     looseLines.forEach(line=>{
       const tag = line.querySelector('.sell-tag')?.textContent?.trim();
-      if(tag !== '散') return;
+      if(tag !== '\u6563') return;
       const id = parseProductIdFromLooseLine(line);
       if(!id || !orderData.items[id]) return;
       line.dataset.afterSalesBound = '1';
       line.classList.add('after-sales-line');
 
-      const pricePicker = line.querySelector('select.price-picker');
-      pricePicker ? pricePicker.insertAdjacentHTML('afterend', buildAfterSaleInline(id)) : line.insertAdjacentHTML('beforeend', buildAfterSaleInline(id));
+      line.insertAdjacentHTML('beforeend', buildAfterSaleInline(id));
+      line.insertAdjacentHTML('afterend', buildAfterSalePanel(id));
       const wrap = getAfterSaleWraps(id)[0];
+      const panel = getAfterSalePanels(id)[0];
       const btn = wrap?.querySelector('[data-after-sales-toggle]');
-      const picker = wrap?.querySelector('[data-after-sales-select]');
+      const picker = panel?.querySelector('[data-after-sales-select]');
       btn?.addEventListener('click', ()=>toggleAfterSalePanel(id));
       picker?.addEventListener('change', event=>setAfterSaleQty(id, event.target.value));
       syncAfterSaleControls(id);
@@ -110,7 +141,7 @@
         const items = JSON.parse(decodeURIComponent(rawItemsEncoded));
         let restored = false;
         items.forEach(it=>{
-          if(String(it.sale_unit||'') !== '售后') return;
+          if(!isAfterSaleUnit(it.sale_unit)) return;
           const id = String(it.barcode||'');
           if(!orderData.items[id]) return;
           orderData.items[id].afterSaleQty = afterSaleQtyForItem(orderData.items[id]) + Math.abs(Number(it.qty||0));
@@ -118,7 +149,7 @@
         });
         if(restored) renderOrder();
       }catch(err){
-        console.warn('售后数量恢复失败', err);
+        console.warn('\u552e\u540e\u6570\u91cf\u6062\u590d\u5931\u8d25', err);
       }
     };
   }
@@ -130,7 +161,7 @@
       if(p) grand += stockQtyFromItem(p,orderData.items[id]) + afterSaleQtyForItem(orderData.items[id]);
     });
     if(grand === 0){
-      alert('⚠️ 空白单据无法提交！');
+      alert('\u26a0\ufe0f \u7a7a\u767d\u5355\u636e\u65e0\u6cd5\u63d0\u4ea4\uff01');
       return;
     }
     const btn = document.querySelector('.float-submit');
@@ -165,15 +196,15 @@
         if(Number(it.wholeQty||0)>0){
           const qty=Number(it.wholeQty),price=Number(it.wholePrice||0),amount=qty*price;
           total+=amount;
-          itemsPayload.push({barcode:String(id),product_name:String(p.product_name),qty:Number(qty*packSize(p)),unit_price:price,amount:Number(amount.toFixed(2)),sale_unit:'整',sale_qty:qty,sale_unit_price:price});
+          itemsPayload.push({barcode:String(id),product_name:String(p.product_name),qty:Number(qty*packSize(p)),unit_price:price,amount:Number(amount.toFixed(2)),sale_unit:'\u6574',sale_qty:qty,sale_unit_price:price});
         }
         if(Number(it.looseQty||0)>0){
           const qty=Number(it.looseQty),price=Number(it.loosePrice||0),amount=qty*price;
           total+=amount;
-          itemsPayload.push({barcode:String(id),product_name:String(p.product_name),qty:Number(qty),unit_price:price,amount:Number(amount.toFixed(2)),sale_unit:'散',sale_qty:qty,sale_unit_price:price});
+          itemsPayload.push({barcode:String(id),product_name:String(p.product_name),qty:Number(qty),unit_price:price,amount:Number(amount.toFixed(2)),sale_unit:'\u6563',sale_qty:qty,sale_unit_price:price});
         }
         if(returnQty > 0){
-          itemsPayload.push({barcode:String(id),product_name:String(p.product_name),qty:-returnQty,unit_price:0,amount:0,sale_unit:'售后',sale_qty:0,sale_unit_price:0});
+          itemsPayload.push({barcode:String(id),product_name:String(p.product_name),qty:-returnQty,unit_price:0,amount:0,sale_unit:AFTER_SALE_UNIT,sale_qty:0,sale_unit_price:0});
         }
       }
       const mixPayload = buildMixBoxPayloads();
@@ -192,13 +223,13 @@
       if(error) throw new Error(error.message);
       const {error:dateError} = await client.from('sales_orders').update({created_at:orderDateToCreatedAt(orderData.date)}).eq('order_no',String(finalOrderNo));
       if(dateError) throw new Error(dateError.message);
-      alert('✅ 开单成功');
+      alert('\u2705 \u5f00\u5355\u6210\u529f');
       orderData=null;
       openStoreHistory(currentStore.atom,currentStore.name);
     }catch(err){
       console.error(err);
-      alert(`❌ 账单保存失败: ${err.message||'网络错误'}`);
-      if(btn){btn.disabled=false;btn.innerText='提交账单'}
+      alert(`\u274c \u8d26\u5355\u4fdd\u5b58\u5931\u8d25: ${err.message||'\u7f51\u7edc\u9519\u8bef'}`);
+      if(btn){btn.disabled=false;btn.innerText='\u63d0\u4ea4\u8d26\u5355'}
     }
   };
 
