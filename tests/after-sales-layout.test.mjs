@@ -20,3 +20,9 @@ assert.ok(js.includes('\\u6536\\u56de\\u589e\\u52a0\\u5e93\\u5b58'), 'after-sale
 assert.ok(js.includes('const originalTemplateEditOrNew'), 'after-sales script should wrap edit/new order rendering');
 assert.ok(js.includes('templateEditOrNew = function(orderNo=null'), 'after-sales script should stay active when editing an existing order');
 assert.ok(js.includes('new MutationObserver(scheduleBind).observe(list,{childList:true,subtree:true})'), 'after-sales controls should bind after the order page is re-rendered');
+
+['store.html', 'store_report.html', 'store_stock.html', 'store_new.html'].forEach(file => {
+  const html = readFileSync(join(root, file), 'utf8');
+  assert.ok(html.includes('store-after-sales.css'), `${file} should load after-sales styles`);
+  assert.ok(html.includes('store-after-sales.js'), `${file} should load after-sales controls`);
+});
