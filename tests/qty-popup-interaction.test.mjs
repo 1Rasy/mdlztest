@@ -20,3 +20,4 @@ assert.ok(qtyPopup.includes("key: 'afterSaleQty'"), 'qty popup should route afte
 assert.ok(qtyPopup.includes("STATE.key === 'afterSaleQty'"), 'qty popup should dispatch after-sales changes instead of calling changeQty');
 assert.ok(qtyPopup.includes('#list .after-sales-panel select.after-sales-picker'), 'qty popup should bind after-sales selects rendered below the loose row');
 assert.ok(qtyPopupCss.includes('.after-sales-panel .qty-popup-trigger'), 'after-sales popup trigger should use the same 5x5 quantity button styling');
+assert.ok(!qtyPopup.includes('requestAnimationFrame(bindQtyPopup)'), 'quantity popup triggers should bind before the next paint to avoid order-row layout jumping');

@@ -175,8 +175,7 @@
   }
 
   function scheduleBind(){
-    if(scheduleBind.raf) cancelAnimationFrame(scheduleBind.raf);
-    scheduleBind.raf = requestAnimationFrame(bindQtyPopup);
+    bindQtyPopup();
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{

@@ -217,8 +217,7 @@
   }
 
   function scheduleBind(){
-    if(scheduleBind.raf) cancelAnimationFrame(scheduleBind.raf);
-    scheduleBind.raf = requestAnimationFrame(bindAfterSalesControls);
+    bindAfterSalesControls();
   }
 
   function afterSaleQtyForItem(it){
