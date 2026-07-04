@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const storeApp = readFileSync(join(root, 'store-app.js'), 'utf8');
 const storeStyle = readFileSync(join(root, 'store-style.css'), 'utf8');
+const afterSales = readFileSync(join(root, 'store-after-sales.js'), 'utf8');
 
 assert.ok(storeApp.includes('function downloadDeliveryImage(imgUrl,fileName)'), 'delivery note should use a direct download helper');
 assert.ok(storeApp.includes("const link=document.createElement('a')"), 'direct download should create a temporary anchor');
@@ -18,3 +19,17 @@ assert.ok(!storeApp.includes('delivery-note-overlay'), 'delivery note should not
 assert.ok(!storeApp.includes('delivery-note-preview-img'), 'delivery note should not render a preview image that can be screenshotted with page URL');
 assert.ok(storeStyle.includes('.delivery-note-capture-wrap{position:fixed;left:-10000px;top:0'), 'delivery note capture wrapper should render offscreen to prevent flicker');
 assert.ok(!storeStyle.includes('.delivery-note-capture-wrap{position:fixed;left:0;top:0'), 'delivery note capture wrapper should not be placed at the visible viewport origin');
+assert.ok(storeApp.includes('history-item-actions'), 'order history cards should use an action row for detail and delivery-note actions');
+assert.ok(storeApp.includes('delivery-note-btn delivery-note-btn-primary'), 'delivery note buttons should have a stronger primary style');
+assert.ok(storeApp.includes('detail-action-row'), 'order detail actions should use a dedicated action row');
+assert.ok(storeApp.includes('detail-delivery-action'), 'order detail should promote delivery-note generation as the primary action');
+assert.ok(storeApp.includes('function buildDeliveryNoteHtml({storeName,rows,totalAmount,employeeName,orderDate})'), 'delivery note HTML should receive the order date');
+assert.ok(storeApp.includes('delivery-note-date'), 'delivery note image should render the order date');
+assert.ok(storeApp.includes('orderDate:orderDate||'), 'generateDeliveryNote should pass the order date into the rendered note');
+assert.ok(storeStyle.includes('.history-item-actions'), 'history action row should be styled');
+assert.ok(storeStyle.includes('.delivery-note-btn-primary'), 'primary delivery note button should be styled');
+assert.ok(storeStyle.includes('.detail-delivery-action'), 'detail delivery note action should be styled as prominent');
+assert.ok(storeStyle.includes('.delivery-note-date'), 'delivery note date should be styled in the exported sheet');
+assert.ok(afterSales.includes('history-item-actions'), 'after-sales history override should keep the stronger delivery-note action row');
+assert.ok(afterSales.includes('detail-action-row'), 'after-sales detail override should keep the promoted delivery-note action');
+assert.ok(afterSales.includes('delivery-note-btn delivery-note-btn-primary'), 'after-sales overrides should use the primary delivery-note button style');
