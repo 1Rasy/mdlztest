@@ -129,6 +129,7 @@
     const it = orderData?.items?.[id];
     if(!it) return;
     it.afterSaleQty = normalizeReturnQty(qty);
+    if(typeof saveOrderDraft === 'function') saveOrderDraft();
     syncAfterSaleControls(id);
     if(typeof calculateLiveOrderAmounts === 'function') calculateLiveOrderAmounts();
   }
@@ -505,6 +506,7 @@
       }).eq('order_no',String(finalOrderNo));
       if(dateError) throw new Error(dateError.message);
       alert('✅ 开单成功');
+      if(typeof clearOrderDraft === 'function') clearOrderDraft(finalOrderNo);
       orderData=null;
       openStoreHistory(currentStore.atom,currentStore.name);
     }catch(err){
