@@ -1,7 +1,7 @@
 (function(){
   const AFTER_SALE_UNIT = '售后';
-  const AFTER_SALE_LABEL = '售后';
-  const AFTER_SALE_PANEL_LABEL = '售后数';
+  const AFTER_SALE_LABEL = '收回';
+  const AFTER_SALE_PANEL_LABEL = '收回数';
   const AFTER_SALE_NOTE = '只算能卖的，收回增加库存';
   const AFTER_SALE_STATUS = 'SUCCESS_AFTER_SALE';
   const NORMAL_STATUS = 'SUCCESS';
