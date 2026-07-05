@@ -131,13 +131,17 @@
     const style = document.createElement('style');
     style.id = 'spr-order-detail-action-style';
     style.textContent = `
-      .detail-action-row button{height:38px!important;border-radius:999px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:14px!important;font-weight:800!important;line-height:1!important;box-shadow:none!important;}
-      .detail-action-row .delivery-note-btn-primary{background:var(--primary)!important;color:#fff!important;border:1px solid var(--primary)!important;}
-      .detail-secondary-actions{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:12px!important;}
-      .detail-secondary-actions .detail-action-secondary,.detail-secondary-actions .detail-action-danger{width:auto!important;min-width:78px!important;height:34px!important;padding:0 18px!important;margin:0!important;font-size:13px!important;}
-      .detail-secondary-actions .detail-action-secondary{background:#fff!important;color:var(--primary)!important;border:1px solid #d8cdda!important;}
-      .detail-secondary-actions .detail-action-danger{background:#fff!important;color:var(--danger)!important;border:1px solid #f3caca!important;}
-      .detail-secondary-actions .detail-action-danger:active,.detail-secondary-actions .detail-action-secondary:active{transform:scale(.98);background:#faf9fa!important;}
+      .detail-action-row{gap:9px!important;margin:10px 0 14px!important;}
+      .detail-summary-actions{display:block!important;}
+      .detail-summary-actions .detail-amount-banner{width:100%!important;margin:0!important;}
+      .detail-action-row button{height:30px!important;border-radius:4px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:12px!important;font-weight:800!important;line-height:1!important;box-shadow:none!important;white-space:nowrap!important;}
+      .detail-secondary-actions{display:flex!important;justify-content:flex-start!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important;}
+      .detail-secondary-actions .detail-action-secondary,.detail-secondary-actions .detail-action-danger{width:auto!important;min-width:70px!important;height:30px!important;padding:0 12px!important;margin:0!important;}
+      .detail-secondary-actions .detail-action-secondary{background:#fdf6ec!important;color:#e6a23c!important;border:1px solid #f5dab1!important;}
+      .detail-secondary-actions .detail-action-danger{background:#fef0f0!important;color:#f56c6c!important;border:1px solid #fde2e2!important;}
+      .detail-secondary-actions .detail-delivery-action{width:auto!important;min-width:82px!important;height:30px!important;padding:0 13px!important;margin:0!important;background:#111!important;color:#fff!important;border:1px solid #111!important;border-radius:4px!important;font-size:12px!important;}
+      .history-item-compact .delivery-note-btn-primary,.history-item .delivery-note-btn-primary:not(.detail-delivery-action){background:var(--primary)!important;color:#fff!important;border:1px solid var(--primary)!important;border-radius:999px!important;box-shadow:none!important;height:32px!important;padding:0 14px!important;min-width:82px!important;font-size:13px!important;}
+      .history-item-top span:last-child{background:transparent!important;border:none!important;border-radius:0!important;padding:0!important;color:var(--text-muted)!important;}
       .order-detail-flavors-compact{gap:2px!important;margin:1px 0 5px!important;}
       .order-detail-flavor-compact{display:block!important;font-size:13px!important;line-height:1.55!important;color:var(--primary)!important;}
       .order-detail-flavor-compact span{font-weight:800!important;color:var(--primary)!important;}
@@ -162,10 +166,12 @@
     if(typeof STATE !== 'undefined' && STATE !== 'DETAIL') return;
     const root = document.getElementById('list');
     if(!root) return;
+    const secondary = root.querySelector('.detail-secondary-actions');
     const delivery = root.querySelector('.detail-delivery-action');
     if(delivery){
       setButtonText(delivery, '生成单据');
       removeInlineStyle(delivery);
+      if(secondary && delivery.parentElement !== secondary) secondary.appendChild(delivery);
     }
     const edit = Array.from(root.querySelectorAll('.detail-secondary-actions button')).find(btn=>String(btn.getAttribute('onclick') || '').includes('editExistingOrder'));
     if(edit){
