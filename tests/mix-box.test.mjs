@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const storeApp = readFileSync(join(root, 'store-app.js'), 'utf8');
+const deliveryNote = readFileSync(join(root, 'store-delivery-note.js'), 'utf8');
 const productsPage = readFileSync(join(root, 'products.html'), 'utf8');
 const mixBoxSql = readFileSync(join(root, 'database', '20260701_add_products_allow_mix_box.sql'), 'utf8');
 
@@ -30,8 +31,8 @@ assert.ok(productsPage.includes('data-field="allow_mix_box"'), 'products page sh
 assert.ok(mixBoxSql.includes('add column if not exists allow_mix_box boolean not null default false'), 'allow_mix_box migration should add the product flag safely');
 
 const dashboardPage = readFileSync(join(root, 'dashboard.html'), 'utf8');
-assert.ok(storeApp.includes("saleUnit.includes('\\u62fc\\u76d2')"), 'delivery note should recognize mixed-box sale units');
-assert.ok(storeApp.includes('row.wholeQty+=saleQty/wholeSize'), 'delivery note should convert mixed loose quantities to whole boxes');
+assert.ok(deliveryNote.includes("saleUnit.includes('\\u62fc\\u76d2')"), 'delivery note should recognize mixed-box sale units');
+assert.ok(deliveryNote.includes('row.wholeQty+=saleQty/wholeSize'), 'delivery note should convert mixed loose quantities to whole boxes');
 assert.ok(dashboardPage.includes('pcs_per_box'), 'dashboard export should load box size for mixed boxes');
 assert.ok(dashboardPage.includes("saleUnit==='拼盒'"), 'dashboard should detect mixed-box sale rows');
 assert.ok(dashboardPage.includes('row.looseQty+=saleQty'), 'dashboard mixed-box export should keep each flavor as loose quantity');
