@@ -130,26 +130,38 @@
     document.head.appendChild(style);
   }
 
+  function setButtonText(btn, text){
+    if(btn && btn.textContent !== text) btn.textContent = text;
+  }
+
+  function removeInlineStyle(btn){
+    if(btn && btn.hasAttribute('style')) btn.removeAttribute('style');
+  }
+
+  function ensureClass(btn, className){
+    if(btn && !btn.classList.contains(className)) btn.classList.add(className);
+  }
+
   function normalizeDetailButtons(){
     if(typeof STATE !== 'undefined' && STATE !== 'DETAIL') return;
     const root = document.getElementById('list');
     if(!root) return;
     const delivery = root.querySelector('.detail-delivery-action');
     if(delivery){
-      delivery.textContent = '生成单据';
-      delivery.removeAttribute('style');
+      setButtonText(delivery, '生成单据');
+      removeInlineStyle(delivery);
     }
     const edit = Array.from(root.querySelectorAll('.detail-secondary-actions button')).find(btn=>String(btn.getAttribute('onclick') || '').includes('editExistingOrder'));
     if(edit){
-      edit.textContent = '修改';
-      edit.removeAttribute('style');
-      edit.classList.add('detail-action-secondary');
+      setButtonText(edit, '修改');
+      removeInlineStyle(edit);
+      ensureClass(edit, 'detail-action-secondary');
     }
     const del = root.querySelector('.detail-secondary-actions .detail-danger-action') || Array.from(root.querySelectorAll('.detail-secondary-actions button')).find(btn=>String(btn.getAttribute('onclick') || '').includes('deleteExistingOrder'));
     if(del){
-      del.textContent = '删除';
-      del.removeAttribute('style');
-      del.classList.add('detail-action-danger');
+      setButtonText(del, '删除');
+      removeInlineStyle(del);
+      ensureClass(del, 'detail-action-danger');
     }
   }
 
