@@ -5,6 +5,11 @@
   })[char]);
   const admin = sessionStorage.getItem('admin_employee_code') || 'ADMIN';
   const stockAdjustmentApi = StockAdjustmentApi.create(client);
+  let employeeNames = new Map();
+
+  function employeeName(employeeCode) {
+    return employeeNames.get(String(employeeCode || '')) || '—';
+  }
 
   function buttonsDisabled(disabled) {
     document.querySelectorAll('#queue button').forEach(button => {
@@ -71,18 +76,18 @@
     const note = [request.reason_note, request.remark ? `备注：${request.remark}` : ''].filter(Boolean).join('；');
     return `<details class="review-history-card">
       <summary class="review-history-summary">
-        <div class="review-history-title"><span>${esc(request.request_no)}</span><span class="employee-pill">${esc(request.employee_code)}</span><span class="status-pill ${status.className}">${status.label}</span></div>
+        <div class="review-history-title"><span>${esc(request.request_no)}</span><span class="employee-pill">${esc(employeeName(request.employee_code))}</span><span class="status-pill ${status.className}">${status.label}</span></div>
         <div class="review-history-time">${esc(formatDate(request.reviewed_at))}</div>
       </summary>
       <div class="review-history-body">
-        <div class="review-history-meta"><span><strong>审核人：</strong>${esc(request.reviewer_code || '-')}</span><span><strong>调整原因：</strong>${esc(reason)}</span><span><strong>提交时间：</strong>${esc(formatDate(request.submitted_at))}</span></div>
+        <div class="review-history-meta"><span><strong>审核人：</strong>${esc(employeeName(request.reviewer_code))}</span><span><strong>调整原因：</strong>${esc(reason)}</span><span><strong>提交时间：</strong>${esc(formatDate(request.submitted_at))}</span></div>
         <div class="review-request-note">${note ? esc(note) : '无补充说明'}</div>
         ${request.status === 'rejected' ? `<div class="review-history-rejection"><strong>驳回理由：</strong>${esc(request.rejection_reason || '-')}</div>` : ''}
         <div class="table-wrap review-history-table-wrap"><table class="history-table">
-          <thead><tr><th>商品名称/规格口味</th><th>条码</th><th>调整数量</th></tr></thead>
+          <thead><tr><th>规格口味</th><th>条码</th><th>调整数量</th></tr></thead>
           <tbody>${(entry.items || []).map(item => {
             const delta = Number(item.adjustment_qty);
-            return `<tr><td>${esc([item.product_name, item.spec, item.flavor].filter(Boolean).join(' '))}</td><td class="cell-nowrap">${esc(item.product_barcode)}</td><td class="cell-number ${quantityClass(delta)}">${delta > 0 ? '+' : ''}${delta}</td></tr>`;
+            return `<tr><td>${esc(StockAdjustmentCore.formatSpecFlavor(item))}</td><td class="cell-nowrap">${esc(item.product_barcode)}</td><td class="cell-number ${quantityClass(delta)}">${delta > 0 ? '+' : ''}${delta}</td></tr>`;
           }).join('') || '<tr class="empty-row"><td colspan="3">无商品明细</td></tr>'}</tbody>
         </table></div>
       </div>
@@ -101,7 +106,9 @@
     $('queue').innerHTML = '<div class="loading-state">正在加载待审核申请...</div>';
     $('history').innerHTML = '<div class="loading-state">正在加载审核历史...</div>';
     try {
-      const [pendingRows, historyRows] = await Promise.all([stockAdjustmentApi.pending(), stockAdjustmentApi.reviewHistory(100)]);
+      const [pendingRows, historyRows, employeesResult] = await Promise.all([stockAdjustmentApi.pending(), stockAdjustmentApi.reviewHistory(100), client.from('employees').select('employee_code,name')]);
+      if (employeesResult.error) throw employeesResult.error;
+      employeeNames = new Map((employeesResult.data || []).map(employee => [String(employee.employee_code), employee.name]));
       const requests = Array.isArray(pendingRows) ? pendingRows : [];
       renderMetrics(requests);
       $('queue').innerHTML = requests.map(renderRequest).join('') || '<div class="empty-state">暂无待审核申请。</div>';

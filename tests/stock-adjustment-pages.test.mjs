@@ -39,7 +39,7 @@ test('admin stock pages use the unified desktop shell and table structure', () =
   assert.match(reviewHtml, /class="shell admin-stock-page"/);
   assert.match(reviewHtml, /class="page-card page-header-card"/);
   assert.match(reviewHtml, /id="reviewMetrics"/);
-  assert.match(movementsHtml, /class="shell admin-stock-page"/);
+  assert.match(movementsHtml, /class="shell admin-stock-page inventory-movements-page"/);
   assert.match(movementsHtml, /class="page-card page-header-card"/);
   assert.match(movementsHtml, /class="table-wrap movements-table-wrap"/);
   assert.match(styles, /min-width:\s*1100px/);
@@ -74,17 +74,26 @@ test('review page loads and renders completed review history', () => {
   assert.match(enhancements, /\.status-rejected/);
 });
 
-test('movement page reuses the dashboard date-range picker structure and behavior', () => {
-  for (const id of ['range_today', 'range_yesterday', 'range_7d', 'range_month', 'range_all', 'customRangeText', 'dateRangePanel', 'start', 'end']) {
+test('movement page uses only all history and a single date picker with automatic loading', () => {
+  for (const id of ['range_all', 'movementDate', 'start', 'end']) {
     assert.match(movementsHtml, new RegExp(`id="${id}"`));
   }
-  assert.match(movementsHtml, /date-range-picker/);
-  assert.match(movements, /function openDateRangePicker\(/);
-  assert.match(movements, /function renderDateRangePanel\(/);
-  assert.match(movements, /function renderMonth\(/);
+  for (const id of ['range_today', 'range_yesterday', 'range_7d', 'range_month', 'customRangeText', 'dateRangePanel', 'query']) {
+    assert.doesNotMatch(movementsHtml, new RegExp(`id="${id}"`));
+  }
   assert.match(movements, /function setRange\(/);
-  assert.match(movements, /\['today', 'yesterday', '7d', 'month', 'all'\]/);
-  assert.match(enhancements, /\.date-range-panel/);
-  assert.match(enhancements, /\.range-cal-grid/);
-  assert.match(enhancements, /\.range-day\.active/);
+  assert.match(movements, /\$\('movementDate'\)\.onchange/);
+  assert.match(movements, /\$\('employee'\)\.onchange = query/);
+  assert.match(movements, /\$\('type'\)\.onchange = query/);
+  assert.match(styles, /\.inventory-movements-page/);
+});
+
+test('review history shows employee names and spec flavor without product names', () => {
+  const historyStart = review.indexOf('function renderHistoryItem');
+  const historyEnd = review.indexOf('function renderHistory(rows)', historyStart);
+  const historyBody = review.slice(historyStart, historyEnd);
+  assert.match(historyBody, /employeeName\(request\.employee_code\)/);
+  assert.match(historyBody, /employeeName\(request\.reviewer_code\)/);
+  assert.match(historyBody, /StockAdjustmentCore\.formatSpecFlavor\(item\)/);
+  assert.doesNotMatch(historyBody, /item\.product_name/);
 });

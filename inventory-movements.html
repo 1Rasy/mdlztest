@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="stock-adjustment-admin-enhancements.css">
 </head>
 <body>
-  <main class="shell admin-stock-page">
+  <main class="shell admin-stock-page inventory-movements-page">
     <section class="page-card page-header-card">
       <div class="page-header">
         <div class="page-title-wrap">
@@ -21,20 +21,9 @@
         </div>
       </div>
       <div class="filter-row movements-filter-row">
-        <div class="range-row">
-          <button id="range_today" class="range-btn active" onclick="setRange('today')">本日</button>
-          <button id="range_yesterday" class="range-btn" onclick="setRange('yesterday')">昨日</button>
-          <button id="range_7d" class="range-btn" onclick="setRange('7d')">近 7 天</button>
-          <button id="range_month" class="range-btn" onclick="setRange('month')">本月</button>
-          <button id="range_all" class="range-btn" onclick="setRange('all')">全部历史</button>
-          <div class="date-range-picker">
-            <input id="customRangeText" class="date-input date-range-input" type="text" readonly placeholder="选择日期范围" onclick="openDateRangePicker()">
-            <div id="dateRangePanel" class="date-range-panel hide"></div>
-          </div>
-        </div>
+        <div class="range-row"><button id="range_all" class="range-btn active" onclick="setRange('all')">全部</button><input id="movementDate" class="date-input" type="date" aria-label="选择日期"></div>
         <label class="filter-field">业务员 <select id="employee"><option value="">全部业务员</option></select></label>
         <label class="filter-field">变化类型 <select id="type"><option value="">全部库存变化类型</option><option value="manual_adjustment">人工库存调整</option></select></label>
-        <button id="query" class="btn primary">查询</button>
         <button id="export" class="btn">导出 Excel</button>
         <input id="start" type="hidden">
         <input id="end" type="hidden">

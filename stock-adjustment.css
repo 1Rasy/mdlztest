@@ -36,6 +36,7 @@ button:disabled { cursor: wait; opacity: .58; }
 }
 
 .admin-stock-page { min-width: 1070px; }
+.inventory-movements-page { width: min(1600px, calc(100vw - 28px)); max-width: none; }
 
 .page-card {
   margin-bottom: 12px;
@@ -224,7 +225,7 @@ table {
   border-spacing: 0;
 }
 
-.movements-table { min-width: 1420px; }
+.movements-table { min-width: 1160px; table-layout: fixed; }
 .review-table { min-width: 900px; }
 
 th,
