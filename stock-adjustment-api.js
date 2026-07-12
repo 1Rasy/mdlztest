@@ -66,6 +66,9 @@
         p_include_history: Boolean(history),
       }),
       pending: () => rpc('get_pending_stock_adjustment_requests', {}),
+      reviewHistory: limit => rpc('get_stock_adjustment_review_history', {
+        p_limit: Number(limit) || 100,
+      }),
       approve: (id, admin) => rpc('approve_stock_adjustment_request', {
         p_request_id: id,
         p_admin_code: admin,
