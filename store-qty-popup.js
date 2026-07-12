@@ -5,6 +5,7 @@
     trigger: null,
     productId: '',
     key: '',
+    handler: '',
     max: 100
   };
 
@@ -17,17 +18,24 @@
     const code = select.getAttribute('onchange') || '';
     const match = code.match(/changeQty\('([^']+)'\s*,\s*'([^']+)'\s*,\s*this\.value\)/);
     if(!match) return null;
-    return { id: match[1], key: match[2], max: maxOptionValue(select) };
+    return { id: match[1], key: match[2], handler: 'order', max: maxOptionValue(select) };
+  }
+
+  function parseStockAdjustmentSelect(select){
+    const code = select.getAttribute('onchange') || '';
+    const match = code.match(/stockAdjustmentChange\('([^']+)'\s*,\s*'qty'\s*,\s*this\.value\)/);
+    if(!match) return null;
+    return { id: match[1], key: 'stockAdjustmentQty', handler: 'stockAdjustment', max: maxOptionValue(select) };
   }
 
   function parseAfterSaleSelect(select){
     const id = select?.dataset?.afterSalesSelect;
     if(!id) return null;
-    return { id, key: 'afterSaleQty', max: maxOptionValue(select) };
+    return { id, key: 'afterSaleQty', handler: 'afterSale', max: maxOptionValue(select) };
   }
 
   function parsePopupSelect(select){
-    return parseAfterSaleSelect(select) || parseQtySelect(select);
+    return parseAfterSaleSelect(select) || parseStockAdjustmentSelect(select) || parseQtySelect(select);
   }
 
   function unitNameForSelect(select){
@@ -37,11 +45,12 @@
   }
 
   function productNameForSelect(select){
-    return select.closest('.item')?.querySelector('.prod-name')?.textContent?.trim() || '\u5546\u54c1';
+    return select.closest('.item, .stock-row')?.querySelector('.prod-name')?.textContent?.trim() || '\u5546\u54c1';
   }
 
   function labelForKey(key){
     if(key === 'afterSaleQty') return '\u552e\u540e\u6570';
+    if(key === 'stockAdjustmentQty') return '\u6563\u6570';
     return key === 'wholeQty' ? '\u6574\u6570' : '\u6563\u6570';
   }
 
@@ -93,7 +102,9 @@
     if(!STATE.select) return closePopup();
     const n = Math.max(0, Math.min(STATE.max, parseInt(value, 10) || 0));
     STATE.select.value = String(n);
-    if(STATE.key === 'afterSaleQty'){
+    if(STATE.handler === 'stockAdjustment' && typeof window.stockAdjustmentChange === 'function'){
+      window.stockAdjustmentChange(STATE.productId, 'qty', n);
+    }else if(STATE.handler === 'afterSale'){
       STATE.select.dispatchEvent(new Event('change', { bubbles: true }));
     }else if(typeof window.changeQty === 'function'){
       window.changeQty(STATE.productId, STATE.key, n);
@@ -110,6 +121,7 @@
     STATE.trigger = trigger;
     STATE.productId = meta.id;
     STATE.key = meta.key;
+    STATE.handler = meta.handler || '';
     STATE.max = meta.max;
 
     const unit = unitNameForSelect(select);
@@ -127,6 +139,7 @@
     document.getElementById('qtyPopupMask')?.classList.add('hide');
     STATE.select = null;
     STATE.trigger = null;
+    STATE.handler = '';
   }
 
   function handlePopupClick(event){
