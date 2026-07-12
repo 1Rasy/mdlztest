@@ -14,6 +14,11 @@
   const originalSelectBrand = window.selectBrand;
   const originalSelectSpec = window.selectSpec;
 
+  function setBaseBackVisible(visible) {
+    const back = $('back');
+    if (back) back.classList.toggle('hide', !visible);
+  }
+
   window.openStockManagement = async function() {
     await originalOpenStockManagement();
     if (initialAdjust) await window.openStockAdjustmentMode();
@@ -172,6 +177,7 @@
     adjustmentMode = true;
     STATE = 'STOCK_ADJUST';
     clearEditState();
+    setBaseBackVisible(false);
     requestPanelsHtml = await loadPanels();
     await window.renderStockAdjustmentMode();
   };
@@ -179,6 +185,7 @@
   window.closeStockAdjustmentMode = function() {
     adjustmentMode = false;
     clearEditState();
+    setBaseBackVisible(true);
     STATE = 'STOCK';
     renderStockPage();
   };
@@ -225,6 +232,7 @@
         direction: Number(item.adjustment_qty) < 0 ? 'minus' : 'plus',
         qty: Math.abs(Number(item.adjustment_qty)),
       }));
+      setBaseBackVisible(false);
       requestPanelsHtml = await loadPanels();
       await window.renderStockAdjustmentMode();
     } catch (error) {
@@ -284,6 +292,7 @@
   window.renderStockPage = function() {
     oldRenderStockPage();
     if (!adjustmentMode) {
+      setBaseBackVisible(true);
       const title = $('list').querySelector('.sub');
       if (title) {
         title.insertAdjacentHTML('afterend', '<button class="smallbtn" style="margin:8px 0;" onclick="openStockAdjustmentMode()">申请修改库存</button>');
