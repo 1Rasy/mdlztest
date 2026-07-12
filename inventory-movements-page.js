@@ -5,15 +5,159 @@
   })[char]);
   const stockAdjustmentApi = StockAdjustmentApi.create(client);
   let data = [];
+  let currentRange = 'today';
+  let customRangeStart = '';
+  let customRangeEnd = '';
+  let rangeCalendarBase = null;
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date());
-  $('start').value = today;
-  $('end').value = today;
 
   function quantityClass(value) {
     const amount = Number(value);
     if (amount > 0) return 'qty-positive';
     if (amount < 0) return 'qty-negative';
     return 'qty-zero';
+  }
+
+  function dateOnlyValue(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function rangeDisplayValue(start, end) {
+    if (!start && !end) return '';
+    if (start && !end) return start;
+    return `${start} - ${end || start}`;
+  }
+
+  function getCustomDateValues() {
+    let start = customRangeStart;
+    let end = customRangeEnd || customRangeStart;
+    if (start && end && end < start) [start, end] = [end, start];
+    return { start, end };
+  }
+
+  function updateDateRangeText() {
+    $('customRangeText').value = rangeDisplayValue(customRangeStart, customRangeEnd || customRangeStart);
+  }
+
+  function syncRangeButtons(range) {
+    ['today', 'yesterday', '7d', 'month', 'all'].forEach(key => {
+      const button = $(`range_${key}`);
+      if (button) button.classList.toggle('active', key === range);
+    });
+  }
+
+  function applyRangeValues() {
+    let start = today;
+    let end = today;
+    if (currentRange === 'yesterday') {
+      const value = new Date(`${today}T00:00:00`);
+      value.setDate(value.getDate() - 1);
+      start = end = dateOnlyValue(value);
+    } else if (currentRange === '7d') {
+      const value = new Date(`${today}T00:00:00`);
+      value.setDate(value.getDate() - 6);
+      start = dateOnlyValue(value);
+    } else if (currentRange === 'month') {
+      start = `${today.slice(0, 8)}01`;
+    } else if (currentRange === 'all') {
+      start = '2000-01-01';
+    } else if (currentRange === 'custom') {
+      const values = getCustomDateValues();
+      start = values.start || today;
+      end = values.end || start;
+    }
+    $('start').value = start;
+    $('end').value = end;
+  }
+
+  function setRange(range) {
+    currentRange = range;
+    syncRangeButtons(range);
+    if (range !== 'custom') {
+      customRangeStart = '';
+      customRangeEnd = '';
+      updateDateRangeText();
+      closeDateRangePicker();
+    }
+    applyRangeValues();
+    query();
+  }
+
+  function setRangeCalendarBase(date) {
+    rangeCalendarBase = new Date(date.getFullYear(), date.getMonth(), 1);
+  }
+
+  function openDateRangePicker() {
+    currentRange = 'custom';
+    syncRangeButtons('custom');
+    if (!rangeCalendarBase) {
+      const base = customRangeStart ? new Date(`${customRangeStart}T00:00:00`) : new Date(`${today}T00:00:00`);
+      setRangeCalendarBase(base);
+    }
+    renderDateRangePanel();
+    $('dateRangePanel').classList.remove('hide');
+  }
+
+  function closeDateRangePicker() {
+    $('dateRangePanel').classList.add('hide');
+  }
+
+  function shiftRangeMonth(delta) {
+    const base = rangeCalendarBase || new Date(`${today}T00:00:00`);
+    setRangeCalendarBase(new Date(base.getFullYear(), base.getMonth() + delta, 1));
+    renderDateRangePanel();
+  }
+
+  function pickRangeDate(value) {
+    if (!customRangeStart || customRangeEnd) {
+      customRangeStart = value;
+      customRangeEnd = '';
+    } else {
+      customRangeEnd = value;
+      const values = getCustomDateValues();
+      customRangeStart = values.start;
+      customRangeEnd = values.end;
+      updateDateRangeText();
+      applyRangeValues();
+      closeDateRangePicker();
+      query();
+      return;
+    }
+    updateDateRangeText();
+    applyRangeValues();
+    renderDateRangePanel();
+    query();
+  }
+
+  function renderMonth(base, offset) {
+    const first = new Date(base.getFullYear(), base.getMonth() + offset, 1);
+    const year = first.getFullYear();
+    const month = first.getMonth();
+    const start = new Date(year, month, 1 - first.getDay());
+    const selected = getCustomDateValues();
+    let html = `<div><div class="range-month-title">${year}-${String(month + 1).padStart(2, '0')}</div><div class="range-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div><div class="range-days">`;
+    for (let index = 0; index < 42; index += 1) {
+      const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
+      const value = dateOnlyValue(date);
+      const muted = date.getMonth() !== month;
+      const active = value === selected.start || value === selected.end;
+      const inRange = selected.start && selected.end && value > selected.start && value < selected.end;
+      html += `<button class="range-day ${muted ? 'muted ' : ''}${inRange ? 'in-range ' : ''}${active ? 'active' : ''}" onclick="pickRangeDate('${value}')">${date.getDate()}</button>`;
+    }
+    return `${html}</div></div>`;
+  }
+
+  function renderDateRangePanel() {
+    const base = rangeCalendarBase || new Date(`${today}T00:00:00`);
+    setRangeCalendarBase(base);
+    $('dateRangePanel').innerHTML = `<div class="range-cal-head"><button onclick="shiftRangeMonth(-1)">&lsaquo;</button><span>${rangeDisplayValue(customRangeStart, customRangeEnd || customRangeStart)}</span><button onclick="shiftRangeMonth(1)">&rsaquo;</button></div><div class="range-cal-grid">${renderMonth(rangeCalendarBase, 0)}${renderMonth(rangeCalendarBase, 1)}</div><div class="range-picker-actions"><button onclick="clearDateRange()">清空</button><button onclick="closeDateRangePicker()">关闭</button></div>`;
+  }
+
+  function clearDateRange() {
+    customRangeStart = '';
+    customRangeEnd = '';
+    updateDateRangeText();
+    renderDateRangePanel();
   }
 
   function draw() {
@@ -43,12 +187,7 @@
     $('status').className = 'status';
     $('status').textContent = '正在查询库存流水...';
     try {
-      data = await stockAdjustmentApi.movements(
-        $('start').value,
-        $('end').value,
-        $('employee').value,
-        $('type').value,
-      );
+      data = await stockAdjustmentApi.movements($('start').value, $('end').value, $('employee').value, $('type').value);
       if (!Array.isArray(data)) data = [];
       draw();
     } catch (error) {
@@ -59,23 +198,25 @@
   }
 
   async function init() {
-    const { data: employees, error } = await client
-      .from('employees')
-      .select('employee_code,name')
-      .eq('is_active', true)
-      .order('employee_code');
+    const { data: employees, error } = await client.from('employees').select('employee_code,name').eq('is_active', true).order('employee_code');
     if (error) throw error;
-    $('employee').innerHTML += (employees || []).map(employee => (
-      `<option value="${esc(employee.employee_code)}">${esc(employee.employee_code)} ${esc(employee.name)}</option>`
-    )).join('');
+    $('employee').innerHTML += (employees || []).map(employee => `<option value="${esc(employee.employee_code)}">${esc(employee.employee_code)} ${esc(employee.name)}</option>`).join('');
     $('query').onclick = query;
     $('refresh').onclick = query;
     $('export').onclick = () => {
       const book = InventoryMovementExport.createWorkbook(XLSX, data);
       XLSX.writeFile(book, InventoryMovementExport.inventoryExportFileName($('start').value, $('end').value));
     };
+    applyRangeValues();
     await query();
   }
+
+  window.setRange = setRange;
+  window.openDateRangePicker = openDateRangePicker;
+  window.closeDateRangePicker = closeDateRangePicker;
+  window.shiftRangeMonth = shiftRangeMonth;
+  window.pickRangeDate = pickRangeDate;
+  window.clearDateRange = clearDateRange;
 
   init().catch(error => {
     $('status').className = 'status error';
