@@ -64,14 +64,7 @@
 - `20260712220104_stock_adjustment_phase_c`
 - `20260712220556_stock_adjustment_phase_c_hardening`
 
-已创建：
-
-- `stock_adjustment_requests`
-- `stock_adjustment_request_items`
-- `stock_adjustment_request_history`
-- `inventory_movements`
-
-已部署并验证以下 RPC：保存、提交、撤回、驳回、审核通过、查询我的申请、查询待审核申请、查询库存流水。
+已创建申请、申请明细、申请历史和库存流水表，并部署保存、提交、撤回、驳回、审核通过、查询我的申请、查询待审核申请和查询库存流水 RPC。
 
 真实数据库冒烟测试已在自动回滚事务中执行：保存、提交、审核通过、库存变化、流水和历史均验证成功，测试数据最终全部回滚。
 
@@ -93,7 +86,7 @@
 - 员工端库存修改定向测试 15/15 通过。
 - UTF-8/乱码回归测试已加入。
 - Vercel 和两个 Netlify 预览部署检查通过。
-- 两个分支保持指向同一个提交，`tests/` 与应用源码同时存在。
+- 两个分支在每轮完成后保持同步，`tests/` 与应用源码同时存在。
 
 本项目尚未声称仓库全部既有测试均已执行通过；每次更新必须记录本次真实执行的测试范围。
 
@@ -103,7 +96,17 @@
 - 收到新的界面或流程问题后，在同一轮实现中同步更新本文、代码和测试。
 - PR #3 在用户明确确认前不合并。
 
-## 6. 文档同步规则
+## 6. 文档同步完成情况
+
+本轮已补齐并更新：
+
+- `docs/status/STOCK-ADJUSTMENT-PHASE-C.md`
+- `docs/decisions/STOCK-ADJUSTMENT-UI-002.md`
+- `docs/decisions/BRANCH-TEST-FILES-001.md`
+- `docs/decisions/IMPLEMENTATION-STATUS-SYNC-001.md`
+- `docs/superpowers/plans/2026-07-12-stock-adjustment-repair.md`
+
+## 7. 文档同步规则
 
 任何人继续修改库存调整功能时，必须在同一次推送中更新本文，至少写清：
 
