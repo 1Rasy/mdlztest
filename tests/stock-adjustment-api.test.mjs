@@ -50,7 +50,7 @@ test('saveAndSubmit performs exactly one atomic RPC call with the save argument 
   });
 });
 
-test('keeps the existing stock adjustment RPC methods for compatibility', async () => {
+test('keeps the existing stock adjustment RPC methods and adds review history', async () => {
   const api = loadBrowserApi();
   const client = fakeClient();
   const service = api.create(client);
@@ -60,6 +60,7 @@ test('keeps the existing stock adjustment RPC methods for compatibility', async 
   await service.withdraw('r1', 'E1');
   await service.mine('E1', true);
   await service.pending();
+  await service.reviewHistory(50);
   await service.approve('r1', 'A1');
   await service.reject('r1', 'A1', '原因');
   await service.movements('2026-07-01', '2026-07-02', 'E1', 'manual_adjustment');
@@ -70,10 +71,23 @@ test('keeps the existing stock adjustment RPC methods for compatibility', async 
     'withdraw_stock_adjustment_request',
     'get_my_stock_adjustment_requests',
     'get_pending_stock_adjustment_requests',
+    'get_stock_adjustment_review_history',
     'approve_stock_adjustment_request',
     'reject_stock_adjustment_request',
     'get_inventory_movement_details',
   ]);
+  assert.equal(client.calls[5].args.p_limit, 50);
+});
+
+test('review history defaults to 100 records', async () => {
+  const api = loadBrowserApi();
+  const client = fakeClient();
+  const service = api.create(client);
+
+  await service.reviewHistory();
+
+  assert.equal(client.calls[0].name, 'get_stock_adjustment_review_history');
+  assert.equal(client.calls[0].args.p_limit, 100);
 });
 
 test('maps missing RPC errors to a clear deployment message', async () => {
