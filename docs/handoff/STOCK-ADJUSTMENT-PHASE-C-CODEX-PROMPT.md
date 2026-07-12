@@ -22,15 +22,14 @@
 
 ## 二、当前阶段
 
-当前不是继续扩展新功能，而是进入库存调整 Phase C 的稳定性收口阶段。
+当前不是继续扩展新功能，而是库存调整 Phase C 的稳定性收口和页面问题修复阶段。
 
-本轮唯一目标：
+工作目标：
 
-1. 验收当前 Vercel 页面；
-2. 修复实际复现的问题；
-3. 将员工端“先保存、再提交”改成单个原子 RPC；
-4. 完整验证员工提交、管理员审核、库存变化和库存流水；
-5. 更新测试、状态文档和两个分支。
+1. 根据状态文档和用户反馈修复实际页面问题；
+2. 保持员工端原子提交与现有数据库业务规则；
+3. 完整验证员工提交、管理员审核、库存变化和库存流水；
+4. 更新测试、状态文档和两个分支。
 
 PR 保持 Draft，不要合并，不要改成 Ready for review。
 
@@ -63,48 +62,34 @@ PR 保持 Draft，不要合并，不要改成 Ready for review。
 - “漏录入库”原因；
 - 与销售、售后、ERP 有关的新范围。
 
-## 四、先做实际页面验收
+## 四、网页验收与部署分工
 
-在 Vercel 测试分支实际检查：
-
-1. 从库存管理页进入库存修改，是否直接切换且无中间跳动；
-2. 是否只有一个返回按钮；
-3. 申请记录是否在商品列表上方且分组顺序正确；
-4. 商品卡片是否没有多余规格口味行；
-5. 增加、减少是否上下排列在数量左边；
-6. 点击数量是否出现 25 个数字按钮的 5×5 弹窗；
-7. 当前库存和预计库存是否左对齐；
-8. 原因面板是否只在点击提交后出现；
-9. 是否不存在漏录入库；
-10. 关闭提交面板后已选商品、方向和数量是否保留。
-
-每项记录 PASS 或 FAIL。发现问题先增加失败测试或写出可重复复现步骤，再修改代码。
-
-## 五、实现原子提交
-
-当前员工端调用：
+测试分支为：
 
 ```text
-save_stock_adjustment_request
-然后
-submit_stock_adjustment_request
+stock-adjustment-phase-c
 ```
 
-两个请求之间失败时可能留下半完成草稿。
+工作方式：
 
-请按计划新增一个新 migration，例如：
+1. 完成代码和自动化验证后，把同一提交推送到 `feat/stock-adjustment-phase-c`；
+2. 将 `stock-adjustment-phase-c` 同步到相同提交；
+3. Vercel 会自动部署测试分支；
+4. 不需要手动操作 Vercel，不要查询项目权限、部署列表、状态、预览链接或连接器访问能力；
+5. 用户负责打开自动部署后的网页完成实际交互验收；
+6. 用户反馈具体页面问题或复现步骤后，再开始下一轮修复。
 
-```text
-database/20260712_stock_adjustment_atomic_submit.sql
-```
+不要把自己无法读取 Vercel 项目或预览页面写成阻塞项，也不要为此额外排查部署平台。开发者一侧的交付边界是：已验证提交成功推送并同步到测试分支。
 
-新增 RPC：
+## 五、当前原子提交实现
+
+员工端已经改为只调用：
 
 ```text
 save_and_submit_stock_adjustment_request
 ```
 
-它必须在同一个数据库事务内完成：
+该 RPC 在同一个数据库事务内完成：
 
 - 新建或更新申请；
 - 替换明细；
@@ -116,17 +101,15 @@ save_and_submit_stock_adjustment_request
 
 任何一步失败必须整单回滚，不能留下草稿、部分明细或多余历史。
 
-不要修改已经应用的旧 migration，必须新增 migration。
+不要修改已经应用的旧 migration，新的数据库变化必须新增 migration。
 
-然后：
+必须保持：
 
-- 在 `stock-adjustment-api.js` 增加 `saveAndSubmit(...)`；
-- 在 `tests/stock-adjustment-api.test.mjs` 验证它只调用一次 `save_and_submit_stock_adjustment_request`；
-- 将 `store-stock-adjustment.js` 的提交逻辑改为只调用一次 `stockAdjustmentApi.saveAndSubmit(...)`；
+- `stock-adjustment-api.js` 使用 `saveAndSubmit(...)`；
+- `store-stock-adjustment.js` 只调用一次 `stockAdjustmentApi.saveAndSubmit(...)`；
 - 提交失败时保留商品、方向、数量、原因、说明和备注；
-- 提交成功后再清空并刷新。
-
-旧的 `save` 和 `submit` API 暂时保留，不要在本轮删除。
+- 提交成功后再清空并刷新；
+- 旧的 `save` 和 `submit` API 暂时保留。
 
 ## 六、真实业务回归
 
@@ -165,7 +148,7 @@ node --test tests/utf8-source-guard.test.mjs
 node --test tests/*.test.mjs
 ```
 
-必须报告真实命令、通过数、失败数和既有失败。区分静态测试和真实数据库流程，不要用 Vercel 部署成功代替功能测试。
+必须报告真实命令、通过数、失败数和既有失败。区分静态测试和真实数据库流程。分支自动部署不代替功能测试；实际页面表现由用户验收并反馈。
 
 ## 八、文档和分支同步
 
@@ -194,4 +177,4 @@ node --test tests/*.test.mjs
 - 两个分支是否一致；
 - 状态文档是否已更新。
 
-不要合并 PR。
+不要报告 Vercel 权限、连接器或部署读取情况。不要合并 PR。
