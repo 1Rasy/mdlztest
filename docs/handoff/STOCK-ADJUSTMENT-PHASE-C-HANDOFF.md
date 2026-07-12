@@ -1,9 +1,9 @@
 # 库存调整 Phase C 接手文档
 
-- 当前阶段：稳定性收口代码、数据库和自动化验证已完成；实际 Vercel 交互验收受权限阻塞
+- 当前阶段：稳定性收口代码、数据库和自动化验证已完成；等待用户在自动部署的测试页面完成实际交互验收
 - PR：`#3 feat: add stock adjustment phase C`
 - PR 分支：`feat/stock-adjustment-phase-c`
-- Vercel 测试分支：`stock-adjustment-phase-c`
+- 网页测试分支：`stock-adjustment-phase-c`
 - 合并状态：继续保持 Draft，不得合并或转为 Ready for review
 - 唯一进度入口：`docs/status/STOCK-ADJUSTMENT-PHASE-C.md`
 
@@ -75,17 +75,13 @@ node --test tests/*.test.mjs
 
 Node 测试是静态源码契约、语法和本地纯逻辑测试；数据库 10 个场景才是真实业务测试。
 
-## 3. Vercel 实际验收状态
+## 3. 网页测试分支工作方式
 
-GitHub 上 Vercel check 成功，但 Vercel 连接器对项目 `sprspr` 返回 `403 Forbidden`，无法列出或读取部署；猜测分支 URL也无法生成访问链接。
-
-因此：
-
-- 十项 UI 规则的源码与静态测试：PASS；
-- Vercel 实际浏览器逐项操作：BLOCKED；
-- 禁止把部署成功描述为实际页面验收通过。
-
-具备 Vercel 项目权限的人只需在相同提交的测试分支逐项操作状态文档第 3 节清单，并记录 PASS/FAIL。发现实际问题时仍须先补失败测试或明确复现步骤。
+- 接手人员完成修改和自动化验证后，将同一提交推送到 `feat/stock-adjustment-phase-c`，并同步到 `stock-adjustment-phase-c`。
+- `stock-adjustment-phase-c` 推送后由 Vercel 自动部署，开发者不需要手动操作 Vercel。
+- 不需要查询 Vercel 项目权限、部署列表、检查状态、预览地址或连接器访问能力，也不要把这些事项写成开发阻塞。
+- 用户负责打开自动部署后的网页完成实际交互验收，并将页面问题或复现步骤反馈给开发者。
+- 开发者只根据用户反馈继续修复，不因自己无法访问 Vercel 而额外排查部署平台。
 
 ## 4. 后续限制
 
