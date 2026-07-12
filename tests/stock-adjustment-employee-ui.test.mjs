@@ -4,6 +4,8 @@ import test from 'node:test';
 
 const source = fs.readFileSync(new URL('../store-stock-adjustment.js', import.meta.url), 'utf8');
 const popupSource = fs.readFileSync(new URL('../store-qty-popup.js', import.meta.url), 'utf8');
+const cssSource = fs.readFileSync(new URL('../store-stock-adjustment.css', import.meta.url), 'utf8');
+const stockHtml = fs.readFileSync(new URL('../store_stock.html', import.meta.url), 'utf8');
 
 test('employee adjustment page injects its own Supabase client into the shared API', () => {
   assert.match(source, /StockAdjustmentApi\.create\(client\)/);
@@ -18,7 +20,7 @@ test('direction is selected with direct buttons and not a select box', () => {
 });
 
 test('loose quantity reuses the order page picker controls', () => {
-  assert.match(source, /class="sell-line"/);
+  assert.match(source, /class="sell-line stock-adjustment-sell-line"/);
   assert.match(source, /class="sell-tag"[^>]*>散<\/span>/);
   assert.match(source, /class="ios-picker"/);
   assert.match(source, /makeQtyOptions\(100,row\.qty\)/);
@@ -27,11 +29,69 @@ test('loose quantity reuses the order page picker controls', () => {
   assert.doesNotMatch(source, /箱数|盒数|wholeQty|caseQty|boxQty/);
 });
 
-test('adjustment mode hides the page-level back button so only one return control remains', () => {
-  assert.match(source, /function setBaseBackVisible/);
-  assert.match(source, /setBaseBackVisible\(false\)/);
-  assert.match(source, /setBaseBackVisible\(true\)/);
-  assert.match(source, /返回库存查看/);
+test('adjustment mode renders the new page before hiding the base back button or waiting for records', () => {
+  const openStart = source.indexOf('window.openStockAdjustmentMode');
+  const closeStart = source.indexOf('window.closeStockAdjustmentMode', openStart);
+  const openBody = source.slice(openStart, closeStart);
+  assert.ok(openBody.indexOf('window.renderStockAdjustmentMode()') < openBody.indexOf('await refreshRequestPanels()'));
+
+  const renderStart = source.indexOf('window.renderStockAdjustmentMode');
+  const editStart = source.indexOf('window.editStockAdjustmentRequest', renderStart);
+  const renderBody = source.slice(renderStart, editStart);
+  assert.ok(renderBody.indexOf('list.innerHTML') < renderBody.indexOf('setBaseBackVisible(false)'));
+});
+
+test('product card removes the duplicate spec and flavor line', () => {
+  const start = source.indexOf('function adjustmentCard');
+  const end = source.indexOf('function selectedHtml', start);
+  const body = source.slice(start, end);
+  assert.doesNotMatch(body, /product\.spec/);
+  assert.doesNotMatch(body, /product\.flavor/);
+});
+
+test('direction buttons are vertical and placed left of the quantity picker', () => {
+  const start = source.indexOf('function adjustmentCard');
+  const end = source.indexOf('function selectedHtml', start);
+  const body = source.slice(start, end);
+  assert.ok(body.indexOf('stock-adjustment-direction') < body.indexOf('stock-adjustment-sell-line'));
+  assert.match(cssSource, /\.stock-adjustment-controls\{[^}]*grid-template-columns:54px minmax\(0,1fr\)/);
+  assert.match(cssSource, /\.stock-adjustment-direction\{[^}]*flex-direction:column/);
+});
+
+test('projected stock aligns with current stock before the controls', () => {
+  const start = source.indexOf('function adjustmentCard');
+  const end = source.indexOf('function selectedHtml', start);
+  const body = source.slice(start, end);
+  assert.ok(body.indexOf('stock-adjustment-current') < body.indexOf('stock-adjustment-projected'));
+  assert.ok(body.indexOf('stock-adjustment-projected') < body.indexOf('stock-adjustment-controls'));
+  assert.match(cssSource, /\.stock-adjustment-projected\{[^}]*padding:0 10px/);
+});
+
+test('request sections are separated and placed above the product filters', () => {
+  assert.match(source, /requestBlock\('待审核申请'/);
+  assert.match(source, /requestBlock\('已驳回申请'/);
+  assert.match(source, /requestBlock\('历史记录'/);
+  assert.match(source, /requestBlock\('已撤回申请'/);
+
+  const renderStart = source.indexOf('window.renderStockAdjustmentMode');
+  const editStart = source.indexOf('window.editStockAdjustmentRequest', renderStart);
+  const renderBody = source.slice(renderStart, editStart);
+  assert.ok(renderBody.indexOf('stock-adjustment-request-panels') < renderBody.indexOf('stock-adjustment-filters'));
+});
+
+test('reason is selected only when submitting and missed receipt is removed', () => {
+  assert.match(source, /onclick="openStockAdjustmentSubmitDialog\(\)"/);
+  assert.match(source, /id="stockAdjustmentSubmitMask"/);
+  assert.match(source, /confirmStockAdjustmentSubmit/);
+  assert.match(source, /盘点差异/);
+  assert.match(source, /破损报废/);
+  assert.match(source, /调货/);
+  assert.match(source, /其他/);
+  assert.doesNotMatch(source, /漏录入库|missed_receipt/);
+});
+
+test('stock page loads the dedicated adjustment stylesheet', () => {
+  assert.match(stockHtml, /store-stock-adjustment\.css/);
 });
 
 test('stock adjustment quantity is handled by the same 5x5 popup used by order entry', () => {
