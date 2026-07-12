@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>库存流水</title>
   <link rel="stylesheet" href="stock-adjustment.css">
+  <link rel="stylesheet" href="stock-adjustment-admin-enhancements.css">
 </head>
 <body>
   <main class="shell admin-stock-page">
@@ -19,13 +20,24 @@
           <button id="refresh" class="btn primary">刷新</button>
         </div>
       </div>
-      <div class="filter-row">
-        <label class="filter-field">开始日期 <input id="start" type="date"></label>
-        <label class="filter-field">结束日期 <input id="end" type="date"></label>
+      <div class="filter-row movements-filter-row">
+        <div class="range-row">
+          <button id="range_today" class="range-btn active" onclick="setRange('today')">本日</button>
+          <button id="range_yesterday" class="range-btn" onclick="setRange('yesterday')">昨日</button>
+          <button id="range_7d" class="range-btn" onclick="setRange('7d')">近 7 天</button>
+          <button id="range_month" class="range-btn" onclick="setRange('month')">本月</button>
+          <button id="range_all" class="range-btn" onclick="setRange('all')">全部历史</button>
+          <div class="date-range-picker">
+            <input id="customRangeText" class="date-input date-range-input" type="text" readonly placeholder="选择日期范围" onclick="openDateRangePicker()">
+            <div id="dateRangePanel" class="date-range-panel hide"></div>
+          </div>
+        </div>
         <label class="filter-field">业务员 <select id="employee"><option value="">全部业务员</option></select></label>
         <label class="filter-field">变化类型 <select id="type"><option value="">全部库存变化类型</option><option value="manual_adjustment">人工库存调整</option></select></label>
         <button id="query" class="btn primary">查询</button>
         <button id="export" class="btn">导出 Excel</button>
+        <input id="start" type="hidden">
+        <input id="end" type="hidden">
       </div>
       <p id="status" class="status">正在加载库存流水...</p>
     </section>
