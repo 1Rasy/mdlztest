@@ -6,7 +6,7 @@ const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'ut
 
 test('employee stock page submits requests instead of updating van_stocks', () => {
   const html = read('stock.html');
-  const js = read('stock-adjustment-page.js');
+  const js = read('stock-adjustment-page.js') + read('stock-adjustment-api.js');
   assert.doesNotMatch(html + js, /from\(['"]van_stocks['"]\)\.upsert/);
   assert.match(html, /stock-adjustment-core\.js/);
   assert.match(html, /stock-adjustment-api\.js/);
@@ -15,14 +15,35 @@ test('employee stock page submits requests instead of updating van_stocks', () =
   assert.match(js, /withdraw_stock_adjustment_request/);
   assert.match(html + js, /我的申请/);
   assert.match(html + js, /预计库存/);
+  assert.match(html + js, /品牌|brand/);
+  assert.match(html + js, /规格|spec/);
+  assert.match(html + js, /搜索/);
+  assert.match(html + js, /pcsPerCase|pcs_per_case/);
+  assert.match(html + js, /step="1"/);
+});
+
+test('employee store entry visibly links to the stock adjustment application', () => {
+  const entry = read('store.html') + read('store-adjustment-entry.js');
+  assert.match(entry, /库存调整申请/);
+  assert.match(entry, /stock\.html/);
+});
+
+test('request lists keep only pending and rejected items in the default queue', () => {
+  const js = read('stock-adjustment-page.js');
+  assert.match(js, /pending_review','rejected/);
+  assert.doesNotMatch(js, /active=data\.filter\(x=>\['pending_review','rejected','draft','withdrawn'\]/);
+  assert.match(js, /withdrawn.*history|history.*withdrawn/s);
 });
 
 test('admin pages expose approval and filtered xlsx export', () => {
-  const review = read('stock-adjustment-review.html') + read('stock-adjustment-review.js');
-  const movements = read('inventory-movements.html') + read('inventory-movements-page.js');
+  const review = read('stock-adjustment-review.html') + read('stock-adjustment-review.js') + read('stock-adjustment-api.js');
+  const movements = read('inventory-movements.html') + read('inventory-movements-page.js') + read('stock-adjustment-api.js');
   assert.match(review, /approve_stock_adjustment_request/);
   assert.match(review, /reject_stock_adjustment_request/);
   assert.match(review, /驳回理由/);
+  assert.match(review, /商品名称|product_name/);
+  assert.match(review, /规格|spec/);
+  assert.match(review, /备注|remark/);
   assert.match(movements, /get_inventory_movement_details/);
   assert.match(movements, /xlsx@0\.18\.5/);
   assert.match(movements, /开始日期/);
