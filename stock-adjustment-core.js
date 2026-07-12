@@ -36,6 +36,7 @@
     if (!items.length) return '请至少添加一个商品';
     if (!draft.reasonCode || !REASONS[draft.reasonCode]) return '请选择调整原因';
     if (draft.reasonCode === 'other' && !String(draft.reasonNote || '').trim()) return '选择“其他”时必须填写说明';
+    if (items.some(item => !Number.isSafeInteger(Number(item.adjustmentQty)))) return '调整数量必须是整数';
     if (items.some(item => !number(item.adjustmentQty))) return '调整数量不能为 0';
     return '';
   }
