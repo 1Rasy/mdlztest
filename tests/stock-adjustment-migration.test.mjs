@@ -43,6 +43,13 @@ test('approval locks current stock and writes inventory plus ledger in one funct
   assert.match(approval, /status = 'approved'/);
 });
 
+test('rejects non-integer JSON quantities before bigint conversion and returns product review data', () => {
+  assert.match(compact, /adjustment_qty.*integer|required|invalid integer/);
+  assert.match(compact, /product_name/);
+  assert.match(compact, /p\.spec/);
+  assert.match(compact, /p\.flavor/);
+});
+
 test('movement query uses Shanghai inclusive end-date semantics', () => {
   assert.match(compact, /at time zone 'asia\/shanghai'/);
   assert.match(compact, /p_end_date \+ 1/);
