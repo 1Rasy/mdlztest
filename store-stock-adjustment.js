@@ -3,6 +3,7 @@
   let editingRequestId = null;
   let editMeta = null;
   let requestPanelsHtml = '';
+  let failedSubmissionMeta = null;
   const adjustments = new Map();
   const stockAdjustmentApi = StockAdjustmentApi.create(client);
   const $ = id => document.getElementById(id);
@@ -54,6 +55,7 @@
   function clearEditState() {
     editingRequestId = null;
     editMeta = null;
+    failedSubmissionMeta = null;
     adjustments.clear();
   }
 
@@ -234,15 +236,15 @@
 
   function presetSubmitDialog() {
     const allowed = ['inventory_count', 'damage', 'transfer', 'other'];
-    let reason = editMeta?.reason_code || 'inventory_count';
-    let note = editMeta?.reason_note || '';
+    let reason = failedSubmissionMeta?.reason || editMeta?.reason_code || 'inventory_count';
+    let note = failedSubmissionMeta?.note ?? editMeta?.reason_note ?? '';
     if (!allowed.includes(reason)) {
       note = note || StockAdjustmentCore.reasonLabel(reason) || '';
       reason = 'other';
     }
     $('adjustReason').value = reason;
     $('adjustReasonNote').value = note;
-    $('adjustRemark').value = editMeta?.remark || '';
+    $('adjustRemark').value = failedSubmissionMeta?.remark ?? editMeta?.remark ?? '';
     window.toggleStockAdjustmentReasonNote();
   }
 
@@ -349,7 +351,7 @@
         confirmButton.textContent = '正在提交...';
       }
       if (submitButton) submitButton.disabled = true;
-      const saved = await stockAdjustmentApi.save(
+      await stockAdjustmentApi.saveAndSubmit(
         editingRequestId,
         currentEmployee.code,
         reason,
@@ -357,13 +359,11 @@
         remark,
         items,
       );
-      const requestId = saved?.request?.id || saved?.id;
-      if (!requestId) throw new Error('保存申请后未返回申请编号');
-      await stockAdjustmentApi.submit(requestId, currentEmployee.code);
       window.closeStockAdjustmentSubmitDialog();
       alert('申请已提交审核');
       window.closeStockAdjustmentMode();
     } catch (error) {
+      failedSubmissionMeta = { reason, note, remark };
       alert(error.message || '提交失败');
       if (confirmButton) {
         confirmButton.disabled = false;

@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-const sql = fs.readFileSync(new URL('../database/20260712_stock_adjustment_phase_c.sql', import.meta.url), 'utf8');
-const compact = sql.replace(/\s+/g, ' ').toLowerCase();
+const baseSql = fs.readFileSync(new URL('../database/20260712_stock_adjustment_phase_c.sql', import.meta.url), 'utf8');
+const atomicSql = fs.readFileSync(new URL('../database/20260712_stock_adjustment_atomic_submit.sql', import.meta.url), 'utf8');
+const compact = baseSql.replace(/\s+/g, ' ').toLowerCase();
+const atomic = atomicSql.replace(/\s+/g, ' ').toLowerCase();
 
 test('creates the request, history, item and unified movement tables', () => {
   for (const table of ['stock_adjustment_requests', 'stock_adjustment_request_items', 'stock_adjustment_request_history', 'inventory_movements']) {
@@ -26,8 +28,28 @@ test('provides all RPCs with safe definer settings and explicit grants', () => {
     'get_pending_stock_adjustment_requests', 'get_inventory_movement_details'
   ]) assert.match(compact, new RegExp(`function public\\.${fn}\\(`));
   assert.match(compact, /security definer set search_path = pg_catalog, public/);
-  assert.match(compact, /revoke all on[^;]+from anon, authenticated/);
+  assert.match(compact, /revoke all on[^;]+from public, anon, authenticated/);
   assert.match(compact, /grant execute on function[^;]+to anon, authenticated/);
+});
+
+test('adds one atomic save-and-submit RPC in a new migration', () => {
+  assert.match(atomic, /create or replace function public\.save_and_submit_stock_adjustment_request\(/);
+  assert.match(atomic, /returns jsonb language plpgsql security definer set search_path = pg_catalog, public/);
+  assert.match(atomic, /public\.save_stock_adjustment_request\(/);
+  assert.match(atomic, /public\.submit_stock_adjustment_request\(/);
+  assert.ok(atomic.indexOf('public.save_stock_adjustment_request(') < atomic.indexOf('public.submit_stock_adjustment_request('));
+  assert.doesNotMatch(atomic, /exception\s+when/);
+});
+
+test('atomic submit permits only the four approved UI reasons and validates other notes', () => {
+  assert.match(atomic, /p_reason_code not in \('inventory_count','damage','transfer','other'\)/);
+  assert.match(atomic, /p_reason_code = 'other'[^;]+reason note is required/);
+  assert.doesNotMatch(atomic, /missed_receipt|漏录入库/);
+});
+
+test('atomic RPC has explicit public revocation and client grants', () => {
+  assert.match(atomic, /revoke all on function public\.save_and_submit_stock_adjustment_request\(uuid,text,text,text,text,jsonb\) from public, anon, authenticated/);
+  assert.match(atomic, /grant execute on function public\.save_and_submit_stock_adjustment_request\(uuid,text,text,text,text,jsonb\) to anon, authenticated/);
 });
 
 test('approval locks current stock and writes inventory plus ledger in one function', () => {
@@ -55,4 +77,3 @@ test('movement query uses Shanghai inclusive end-date semantics', () => {
   assert.match(compact, /p_end_date \+ 1/);
   assert.match(compact, /m\.occurred_at < v_end_exclusive/);
 });
-

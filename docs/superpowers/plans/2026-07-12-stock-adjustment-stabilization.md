@@ -1,241 +1,89 @@
 # Stock Adjustment Stabilization Implementation Plan
 
-> **For agentic workers:** Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` and complete tasks in order.
+**Goal:** Finish Phase C stabilization without expanding scope: verify the current UI contract, replace two-step employee submission with one atomic RPC, execute real database regression, and synchronize source, tests, docs, PR description, and both branches.
 
-**Goal:** Finish Phase C stabilization by validating the current UI, replacing two-step submission with one atomic RPC, executing end-to-end business regression, and synchronizing code, tests, and docs.
+**Constraints:** PR #3 remains Draft; do not merge or mark Ready. Employee adjustments are integer loose pieces only. Do not restore case, box, whole, price, numeric input, direction select, top-level order-page entry, or `missed_receipt`.
 
-**Architecture:** Keep the current static HTML and shared API structure. Add a new migration containing an atomic save-and-submit RPC that wraps the existing save and submit functions in one database transaction. Expose it through `StockAdjustmentApi`, switch the employee page to one request, then verify the whole employee-to-admin-to-inventory-to-movement flow.
+## Completion status
 
-**Tech Stack:** Vanilla JavaScript, Supabase JS v2, PostgreSQL, Node.js built-in test runner, Vercel preview.
+### Task 1 — Preview acceptance
 
-## Global Constraints
+- [x] Confirm latest UI decisions in status and decision documents.
+- [x] Add static/source coverage for all ten acceptance rules.
+- [x] Confirm Vercel GitHub check succeeded for the previous head.
+- [ ] Complete actual Vercel browser interaction.
 
-- Keep PR #3 as Draft and do not merge without explicit user approval.
-- Do not add unrelated product features.
-- Employee adjustments remain loose-piece integers only.
-- Do not restore case, box, whole, price, numeric-input, direction-select, top-level order-page entry, or the “漏录入库” reason.
-- Use a new migration file; do not edit migrations that have already been applied.
-- Every implementation push must also update `docs/status/STOCK-ADJUSTMENT-PHASE-C.md`.
-- The PR branch and Vercel branch must end on the same commit containing source, tests, and docs.
+Blocked reason: the connected Vercel account cannot list/read project `sprspr` deployments and returns `403 Forbidden`; generated branch URLs are not accessible through the connector. Deployment success is not counted as functional acceptance.
 
----
+### Task 2 — Atomic database support
 
-## Task 1: Verify the current preview before changing code
+- [x] Add failing migration tests first.
+- [x] Create `database/20260712_stock_adjustment_atomic_submit.sql`.
+- [x] Add `save_and_submit_stock_adjustment_request`.
+- [x] Keep old migrations unchanged.
+- [x] Apply migration to Supabase project `wyjbnnqhiehjccmojbbg`.
+- [x] Verify fixed search path and intended execute privileges.
+- [x] Verify a failed item or submit rolls back request, items, version/status and history.
 
-**Files:**
-- Modify: `docs/status/STOCK-ADJUSTMENT-PHASE-C.md`
-- Modify: `docs/handoff/STOCK-ADJUSTMENT-PHASE-C-HANDOFF.md`
-- Test when needed: `tests/stock-adjustment-employee-ui.test.mjs`
+Implementation: the outer RPC validates the current four reasons, invokes the existing save RPC, extracts the request ID, then invokes the existing submit RPC. No exception is swallowed, so PostgreSQL rolls back the whole outer statement on failure.
 
-- [ ] Confirm `feat/stock-adjustment-phase-c` and `stock-adjustment-phase-c` are identical.
-- [ ] Confirm Vercel is testing the same commit.
-- [ ] Execute the ten-item employee-page checklist in the handoff document.
-- [ ] Record each item as PASS or FAIL.
-- [ ] For every reproducible failure, add a focused regression test before fixing production code.
-- [ ] Run:
+### Task 3 — Shared API
 
-```bash
-node --test tests/stock-adjustment-employee-ui.test.mjs
-node --check store-stock-adjustment.js
-node --check store-qty-popup.js
-```
+- [x] Add failing test expecting one `save_and_submit_stock_adjustment_request` call.
+- [x] Add `saveAndSubmit(...)` with existing argument mapping.
+- [x] Retain legacy `save` and `submit` methods.
+- [x] API tests pass 5/5.
 
-- [ ] Commit any fixes with their tests and docs.
+### Task 4 — Employee page
 
-Expected deliverable: the existing UI is either verified or every remaining defect has a test and a fix.
+- [x] Add failing test proving the old sequential calls.
+- [x] Replace them with one `stockAdjustmentApi.saveAndSubmit(...)` call.
+- [x] Preserve products, directions and quantities on failure.
+- [x] Preserve reason, note and remark across close/reopen after failure.
+- [x] Clear state only after success.
+- [x] Employee UI tests pass 16/16.
 
----
+### Task 5 — Scope cleanup
 
-## Task 2: Add atomic save-and-submit database support
+- [x] Remove `missed_receipt` from shared core reasons.
+- [x] Make shared signed quantity use loose pieces only.
+- [x] Keep negative projected stock allowed.
+- [x] Core tests pass 6/6.
 
-**Files:**
-- Create: `database/20260712_stock_adjustment_atomic_submit.sql`
-- Modify: `tests/stock-adjustment-migration.test.mjs`
-- Modify: `tests/stock-adjustment-database-regression.sql`
+### Task 6 — Real business regression
 
-**Required interface:**
+- [x] Replace placeholder SQL with an executable rollback transaction.
+- [x] Increase → approval → stock increase → one movement.
+- [x] Decrease → approval → negative inventory allowed.
+- [x] Multi-product positive and negative items.
+- [x] Rejection preserves stock; edit/resubmit preserves data.
+- [x] Withdrawal preserves stock; edit/resubmit succeeds.
+- [x] Duplicate submit/approve/reject do not duplicate state or movement.
+- [x] Invalid item rolls back the whole request.
+- [x] Negative quantity remains signed for UI restoration.
+- [x] Other reason requires a note.
+- [x] Movement query finds approved movement.
+- [x] Cleanup query confirms request/item/history/movement residue is 0.
 
-```text
-save_and_submit_stock_adjustment_request(
-  request_id,
-  employee_code,
-  reason_code,
-  reason_note,
-  remark,
-  items
-) -> complete request snapshot
-```
+Result: 10/10 PASS in the real Supabase database.
 
-- [ ] Add a failing migration test proving the new migration and RPC are absent.
-- [ ] Create the migration without changing earlier migration files.
-- [ ] Implement the RPC so save and submit occur inside one outer transaction.
-- [ ] Ensure a submit failure rolls back the save, item replacement, version change, and history writes.
-- [ ] Add a database regression proving a second pending request cannot leave a new draft or extra history after failure.
-- [ ] Apply the migration through the existing Supabase migration workflow.
-- [ ] Execute the regression in a transaction and confirm no test data remains.
+### Task 7 — Final automated verification
 
-Run:
+- [x] Five requested `node --check` commands pass.
+- [x] Requested targeted tests pass.
+- [x] Migration contract test passes 9/9.
+- [x] `node --test tests/*.test.mjs` passes 44/44, failure 0, skipped 0.
+- [x] No pre-existing Node failures observed.
 
-```bash
-node --test tests/stock-adjustment-migration.test.mjs
-```
+### Task 8 — Synchronization
 
-Expected database evidence:
-
-```text
-success path: PASS
-submit failure rolls back save: PASS
-no draft residue: PASS
-no test data residue: PASS
-```
-
----
-
-## Task 3: Add the atomic method to the shared API
-
-**Files:**
-- Modify: `stock-adjustment-api.js`
-- Modify: `tests/stock-adjustment-api.test.mjs`
-
-**Required interface:**
-
-```text
-StockAdjustmentApi.create(client).saveAndSubmit(
-  id,
-  employee,
-  reason,
-  note,
-  remark,
-  items
-)
-```
-
-- [ ] Write a failing API test that expects exactly one RPC call named `save_and_submit_stock_adjustment_request`.
-- [ ] Implement `saveAndSubmit` using the same argument mapping currently used by `save`.
-- [ ] Keep the old `save` and `submit` methods temporarily for compatibility.
-- [ ] Confirm ordinary Supabase errors remain readable.
-
-Run:
-
-```bash
-node --test tests/stock-adjustment-api.test.mjs
-node --check stock-adjustment-api.js
-```
-
-Expected: all tests pass and `saveAndSubmit` makes one RPC call.
-
----
-
-## Task 4: Switch the employee page to atomic submission
-
-**Files:**
-- Modify: `store-stock-adjustment.js`
-- Modify: `tests/stock-adjustment-employee-ui.test.mjs`
-
-- [ ] Add a failing test proving the employee submit function still calls `save` and `submit` separately.
-- [ ] Replace those two calls with one `stockAdjustmentApi.saveAndSubmit(...)` call.
-- [ ] Keep the submit button disabled during the request.
-- [ ] On success, clear the draft, close the submission panel, return to inventory view, and refresh records.
-- [ ] On failure, restore the button and preserve products, directions, quantities, reason, note, and remark.
-- [ ] Ensure editing an existing rejected or withdrawn request passes its existing request ID.
-
-Run:
-
-```bash
-node --test tests/stock-adjustment-employee-ui.test.mjs
-node --check store-stock-adjustment.js
-```
-
-Expected: the submit function contains one atomic API call and no sequential save/submit calls.
-
----
-
-## Task 5: Execute end-to-end business regression
-
-**Files:**
-- Modify: `tests/stock-adjustment-database-regression.sql`
-- Modify: `docs/status/STOCK-ADJUSTMENT-PHASE-C.md`
-- Modify: `docs/handoff/STOCK-ADJUSTMENT-PHASE-C-HANDOFF.md`
-
-Verify these scenarios with marked test data and cleanup or transaction rollback:
-
-1. Increase request → approval → inventory increases → one movement.
-2. Decrease request → approval → inventory decreases and may become negative.
-3. Multi-product request containing both positive and negative items.
-4. Rejection leaves inventory unchanged; edit and resubmit preserves direction, quantity, reason, and remark.
-5. Withdrawal leaves inventory unchanged; edit and resubmit succeeds.
-6. Duplicate submit, approve, and reject actions do not create duplicate state changes or movements.
-7. One item failure rolls back the whole request, inventory, history, and movements.
-8. A stored negative quantity reopens as “减少 + absolute loose quantity”.
-9. The reason panel appears only at submit time and requires a note for “其他”.
-10. The movement page can find the approved adjustment by date and employee.
-
-For every scenario record:
-
-```text
-scenario:
-PASS/FAIL:
-request number:
-products:
-before quantities:
-after quantities:
-movement count:
-cleanup or rollback result:
-```
-
-Expected: all scenarios pass and no test residue remains.
-
----
-
-## Task 6: Final verification and synchronization
-
-**Files:**
-- Modify: `docs/status/STOCK-ADJUSTMENT-PHASE-C.md`
-- Modify: `docs/handoff/STOCK-ADJUSTMENT-PHASE-C-HANDOFF.md` when scope changes
-- Update: PR #3 description
-
-Run syntax checks:
-
-```bash
-node --check stock-adjustment-api.js
-node --check store-stock-adjustment.js
-node --check store-qty-popup.js
-node --check stock-adjustment-review.js
-node --check inventory-movements-page.js
-```
-
-Run targeted tests:
-
-```bash
-node --test tests/stock-adjustment-api.test.mjs
-node --test tests/stock-adjustment-employee-ui.test.mjs
-node --test tests/stock-adjustment-core.test.mjs
-node --test tests/stock-adjustment-pages.test.mjs
-node --test tests/inventory-movement-export.test.mjs
-node --test tests/utf8-source-guard.test.mjs
-```
-
-Run the full Node suite:
-
-```bash
-node --test tests/*.test.mjs
-```
-
-- [ ] Record exact pass and fail counts.
-- [ ] Distinguish static tests from real database flow tests.
-- [ ] Push the verified commit to `feat/stock-adjustment-phase-c`.
+- [x] Update source, tests, status, handoff and this plan together.
+- [ ] Push one commit to `feat/stock-adjustment-phase-c`.
 - [ ] Move `stock-adjustment-phase-c` to the same commit.
-- [ ] Confirm comparison result is `identical`, `ahead_by=0`, `behind_by=0`.
-- [ ] Update docs and PR description in the same delivery.
-- [ ] Keep the PR as Draft.
+- [ ] Confirm `status=identical`, `ahead_by=0`, `behind_by=0`.
+- [ ] Update PR #3 description with actual SHA and test results.
+- [ ] Reconfirm PR remains Draft.
 
-## Completion Definition
+## Completion boundary
 
-The stabilization phase is complete only when:
-
-- the preview acceptance checklist passes;
-- atomic submission and failure rollback are verified;
-- increase, decrease, rejection, withdrawal, resubmission, multi-product, and movement scenarios pass;
-- targeted and full Node results are recorded;
-- source, tests, docs, PR description, and both branches agree;
-- the user completes actual testing without a new blocking defect.
+Automated stabilization is complete. The only unresolved acceptance item is actual Vercel browser interaction, blocked by deployment permissions. PR #3 must stay Draft until the user or a person with Vercel access completes that checklist and reports no blocking defect.

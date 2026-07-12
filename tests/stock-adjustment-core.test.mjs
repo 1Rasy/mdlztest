@@ -17,8 +17,13 @@ test('rejects decimal and unsafe adjustment quantities before RPC submission', (
   assert.match(core.validateAdjustmentDraft({ reasonCode: 'damage', items: [{ barcode: '001', adjustmentQty: Number.MAX_SAFE_INTEGER + 1 }] }), /整数/);
 });
 
-test('calculates signed adjustment and allows negative projected stock', () => {
-  assert.equal(core.signedAdjustment({ direction: 'minus', cases: 1, boxes: 1, pieces: 1 }, { pcsPerCase: 12, pcsPerBox: 4 }), -17);
+test('keeps only the four approved reasons', () => {
+  assert.deepEqual(Object.keys(core.REASONS), ['inventory_count', 'damage', 'transfer', 'other']);
+  assert.equal(core.reasonLabel('missed_receipt'), 'missed_receipt');
+});
+
+test('calculates signed loose-piece adjustment only and allows negative projected stock', () => {
+  assert.equal(core.signedAdjustment({ direction: 'minus', cases: 1, boxes: 1, pieces: 1 }, { pcsPerCase: 12, pcsPerBox: 4 }), -1);
   assert.equal(core.projectedStock(3, -17), -14);
 });
 
@@ -35,4 +40,3 @@ test('builds an inclusive Shanghai business-date range as a half-open interval',
     endExclusiveDate: '2026-07-13'
   });
 });
-

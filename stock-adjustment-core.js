@@ -7,7 +7,6 @@
     inventory_count: '盘点差异',
     damage: '破损报废',
     transfer: '调货',
-    missed_receipt: '漏录入库',
     other: '其他'
   });
   const STATUSES = Object.freeze({
@@ -20,10 +19,8 @@
     return Number.isFinite(result) ? result : 0;
   }
 
-  function signedAdjustment(input, product) {
-    const absolute = number(input.cases) * number(product.pcsPerCase)
-      + number(input.boxes) * number(product.pcsPerBox)
-      + number(input.pieces);
+  function signedAdjustment(input) {
+    const absolute = number(input.pieces);
     return input.direction === 'minus' ? -absolute : absolute;
   }
 
@@ -66,4 +63,3 @@
     statusLabel, reasonLabel, formatSpecFlavor, buildShanghaiDateRange
   };
 });
-

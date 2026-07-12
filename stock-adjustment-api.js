@@ -37,6 +37,14 @@
     }
 
     return {
+      saveAndSubmit: (id, employee, reason, note, remark, items) => rpc('save_and_submit_stock_adjustment_request', {
+        p_request_id: id || null,
+        p_employee_code: employee,
+        p_reason_code: reason,
+        p_reason_note: note || null,
+        p_remark: remark || null,
+        p_items: items,
+      }),
       save: (id, employee, reason, note, remark, items) => rpc('save_stock_adjustment_request', {
         p_request_id: id || null,
         p_employee_code: employee,

@@ -30,7 +30,27 @@ test('creates an API from an explicitly injected Supabase client', () => {
   assert.throws(() => api.create({}), /Supabase client 未初始化/);
 });
 
-test('uses the injected client for every stock adjustment RPC', async () => {
+test('saveAndSubmit performs exactly one atomic RPC call with the save argument mapping', async () => {
+  const api = loadBrowserApi();
+  const client = fakeClient();
+  const service = api.create(client);
+  const items = [{ product_barcode: 'P1', adjustment_qty: 2 }];
+
+  await service.saveAndSubmit('r1', 'E1', 'damage', '', '', items);
+
+  assert.equal(client.calls.length, 1);
+  assert.equal(client.calls[0].name, 'save_and_submit_stock_adjustment_request');
+  assert.deepEqual(JSON.parse(JSON.stringify(client.calls[0].args)), {
+    p_request_id: 'r1',
+    p_employee_code: 'E1',
+    p_reason_code: 'damage',
+    p_reason_note: null,
+    p_remark: null,
+    p_items: items,
+  });
+});
+
+test('keeps the existing stock adjustment RPC methods for compatibility', async () => {
   const api = loadBrowserApi();
   const client = fakeClient();
   const service = api.create(client);
@@ -54,14 +74,6 @@ test('uses the injected client for every stock adjustment RPC', async () => {
     'reject_stock_adjustment_request',
     'get_inventory_movement_details',
   ]);
-  assert.deepEqual(JSON.parse(JSON.stringify(client.calls[0].args)), {
-    p_request_id: 'r1',
-    p_employee_code: 'E1',
-    p_reason_code: 'damage',
-    p_reason_note: null,
-    p_remark: null,
-    p_items: [{ product_barcode: 'P1', adjustment_qty: 2 }],
-  });
 });
 
 test('maps missing RPC errors to a clear deployment message', async () => {

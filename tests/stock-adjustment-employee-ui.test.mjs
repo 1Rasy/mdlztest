@@ -130,8 +130,27 @@ test('editing a negative request restores decrease and absolute quantity', () =>
   assert.match(source, /Math\.abs\(Number\(item\.adjustment_qty\)\)/);
 });
 
-test('employee submission never writes van_stocks directly', () => {
+test('employee submission uses one atomic API call and never writes stock directly', () => {
+  const start = source.indexOf('window.confirmStockAdjustmentSubmit');
+  const end = source.indexOf('window.submitStockAdjustmentRequest', start);
+  const body = source.slice(start, end);
+  assert.match(body, /stockAdjustmentApi\.saveAndSubmit\(/);
+  assert.doesNotMatch(body, /stockAdjustmentApi\.save\(/);
+  assert.doesNotMatch(body, /stockAdjustmentApi\.submit\(/);
   assert.doesNotMatch(source, /from\(['"]van_stocks['"]\)/);
-  assert.match(source, /stockAdjustmentApi\.save/);
-  assert.match(source, /stockAdjustmentApi\.submit/);
+});
+
+test('submission failure preserves products, reason, note and remark until a successful response', () => {
+  const start = source.indexOf('window.confirmStockAdjustmentSubmit');
+  const end = source.indexOf('window.submitStockAdjustmentRequest', start);
+  const body = source.slice(start, end);
+  const callIndex = body.indexOf('await stockAdjustmentApi.saveAndSubmit');
+  const clearIndex = body.indexOf('clearEditState()');
+  assert.ok(callIndex >= 0, 'atomic call should exist');
+  assert.ok(clearIndex === -1 || clearIndex > callIndex, 'form state must not clear before the request succeeds');
+  const catchIndex = body.indexOf('} catch (error)');
+  const catchBody = body.slice(catchIndex);
+  assert.doesNotMatch(catchBody, /clearEditState|adjustments\.clear|editMeta\s*=\s*null/);
+  assert.match(catchBody, /failedSubmissionMeta = \{ reason, note, remark \}/);
+  assert.match(source, /failedSubmissionMeta\?\.reason/);
 });
