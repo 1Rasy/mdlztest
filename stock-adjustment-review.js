@@ -1,10 +1,74 @@
-(function(){
-  const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const admin=sessionStorage.getItem('admin_employee_code')||'ADMIN',stockAdjustmentApi=StockAdjustmentApi.create(client);
-  function buttonsDisabled(disabled){document.querySelectorAll('#queue button').forEach(button=>button.disabled=disabled);}
-  async function load(){try{const rows=await stockAdjustmentApi.pending();$('queue').innerHTML=rows.map(x=>{const r=x.request,stock=new Map(x.stocks.map(s=>[s.product_barcode,Number(s.qty)]));return `<article class="item"><b>${esc(r.request_no)} 路 ${esc(r.employee_code)}</b><div class="muted">${esc(StockAdjustmentCore.reasonLabel(r.reason_code))}${r.reason_note?'锛?+esc(r.reason_note):''}${r.remark?'锛涘娉細'+esc(r.remark):''}锛涙彁浜や簬 ${esc(r.submitted_at||'')}</div><table><tr><th>鍟嗗搧鍚嶇О/瑙勬牸鍙ｅ懗</th><th>鏉＄爜</th><th>褰撳墠搴撳瓨</th><th>璋冩暣</th><th>瀹℃牳鍚?/th></tr>${x.items.map(i=>{const before=stock.get(i.product_barcode)||0;return `<tr><td>${esc([i.product_name,i.spec,i.flavor].filter(Boolean).join(' '))}</td><td>${esc(i.product_barcode)}</td><td>${before}</td><td>${i.adjustment_qty>0?'+':''}${i.adjustment_qty}</td><td>${before+Number(i.adjustment_qty)}</td></tr>`}).join('')}</table><div class="row"><button onclick="window.approveAdjustment('${r.id}')">鍚屾剰</button><button class="secondary" onclick="window.rejectAdjustment('${r.id}')">椹冲洖</button></div></article>`}).join('')||'<p class="muted">鏆傛棤寰呭鏍哥敵璇枫€?/p>';}catch(e){console.error(e);$('queue').textContent='鍔犺浇澶辫触锛?+(e.message||'鏈煡閿欒');}}
-  window.approveAdjustment=async id=>{buttonsDisabled(true);try{await stockAdjustmentApi.approve(id,admin);await load();}catch(e){alert(e.message||'瀹℃牳澶辫触');buttonsDisabled(false);}};
-  window.rejectAdjustment=async id=>{const reason=prompt('椹冲洖鐞嗙敱锛堝繀濉級');if(!reason?.trim())return;buttonsDisabled(true);try{await stockAdjustmentApi.reject(id,admin,reason);await load();}catch(e){alert(e.message||'瀹℃牳澶辫触');buttonsDisabled(false);}};
+(function() {
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+  })[char]);
+  const admin = sessionStorage.getItem('admin_employee_code') || 'ADMIN';
+  const stockAdjustmentApi = StockAdjustmentApi.create(client);
+
+  function buttonsDisabled(disabled) {
+    document.querySelectorAll('#queue button').forEach(button => {
+      button.disabled = disabled;
+    });
+  }
+
+  async function load() {
+    try {
+      const rows = await stockAdjustmentApi.pending();
+      $('queue').innerHTML = (Array.isArray(rows) ? rows : []).map(entry => {
+        const request = entry.request;
+        const stock = new Map((entry.stocks || []).map(item => [item.product_barcode, Number(item.qty)]));
+        return `<article class="item">
+          <b>${esc(request.request_no)} · ${esc(request.employee_code)}</b>
+          <div class="muted">${esc(StockAdjustmentCore.reasonLabel(request.reason_code))}${request.reason_note ? `：${esc(request.reason_note)}` : ''}${request.remark ? `；备注：${esc(request.remark)}` : ''}；提交于 ${esc(request.submitted_at || '')}</div>
+          <table>
+            <tr><th>商品名称/规格口味</th><th>条码</th><th>当前库存</th><th>调整</th><th>审核后</th></tr>
+            ${(entry.items || []).map(item => {
+              const before = stock.get(item.product_barcode) || 0;
+              return `<tr>
+                <td>${esc([item.product_name, item.spec, item.flavor].filter(Boolean).join(' '))}</td>
+                <td>${esc(item.product_barcode)}</td>
+                <td>${before}</td>
+                <td>${Number(item.adjustment_qty) > 0 ? '+' : ''}${Number(item.adjustment_qty)}</td>
+                <td>${before + Number(item.adjustment_qty)}</td>
+              </tr>`;
+            }).join('')}
+          </table>
+          <div class="row">
+            <button onclick="window.approveAdjustment('${esc(request.id)}')">同意</button>
+            <button class="secondary" onclick="window.rejectAdjustment('${esc(request.id)}')">驳回</button>
+          </div>
+        </article>`;
+      }).join('') || '<p class="muted">暂无待审核申请。</p>';
+    } catch (error) {
+      console.error(error);
+      $('queue').textContent = `加载失败：${error.message || '未知错误'}`;
+    }
+  }
+
+  window.approveAdjustment = async id => {
+    buttonsDisabled(true);
+    try {
+      await stockAdjustmentApi.approve(id, admin);
+      await load();
+    } catch (error) {
+      alert(error.message || '审核失败');
+      buttonsDisabled(false);
+    }
+  };
+
+  window.rejectAdjustment = async id => {
+    const reason = prompt('驳回理由（必填）');
+    if (!reason?.trim()) return;
+    buttonsDisabled(true);
+    try {
+      await stockAdjustmentApi.reject(id, admin, reason.trim());
+      await load();
+    } catch (error) {
+      alert(error.message || '审核失败');
+      buttonsDisabled(false);
+    }
+  };
+
   load();
 })();
-

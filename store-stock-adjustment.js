@@ -1,39 +1,293 @@
-(function(){
-  let adjustmentMode=false,editingRequestId=null,adjustments=new Map();
-  const stockAdjustmentApi=StockAdjustmentApi.create(client);
-  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const initialAdjust=new URLSearchParams(location.search).get('adjust')==='1';
-  const originalOpenStockManagement=window.openStockManagement;
-  const originalSelectBrand=window.selectBrand,originalSelectSpec=window.selectSpec;
-  window.openStockManagement=async function(){await originalOpenStockManagement();if(initialAdjust)window.openStockAdjustmentMode();};
-  window.selectBrand=function(value){if(!adjustmentMode)return originalSelectBrand(value);currentSelectedBrand=value;currentSelectedSpec=getSpecsForBrand(value)[0]||'';renderStockAdjustmentMode();};
-  window.selectSpec=function(value){if(!adjustmentMode)return originalSelectSpec(value);currentSelectedSpec=value;renderStockAdjustmentMode();};
-  function rows(){return orderedProducts(products.filter(p=>p.brand===currentSelectedBrand&&p.spec===currentSelectedSpec));}
-  function draftFor(id){return adjustments.get(id)||{direction:'plus',qty:0};}
-  function signed(row){return row.direction === 'minus' ? -row.qty : row.qty;}
-  function clearEditState(){editingRequestId=null;adjustments.clear();window.__stockAdjustMeta=null;}
-  function setDraft(id,field,value){
-    const row=draftFor(id);
-    if(field==='qty'){const qty=Number(value);row.qty=Number.isSafeInteger(qty)&&qty>=0?qty:0;}else row[field]=value;
-    adjustments.set(id,row);updateAdjustmentRow(id);updateAdjustmentSummary();
-  }
-  window.stockAdjustmentChange=function(id,field,value){setDraft(id,field,value);};
-  function buttonStyle(selected){return selected?' style="background:var(--primary);border-color:var(--primary);color:#fff;"':'';}
-  function adjustmentCard(p){
-    const row=draftFor(p.id),current=Number(stockData.currentStockMap[p.id]||0),delta=signed(row),projected=current+delta;
-    return `<div class="stock-row" id="stock-adjustment-row-${esc(p.id)}"><div style="font-weight:600;font-size:15px;">${esc(p.product_name)}</div><div class="sub">${esc(p.spec)} ${esc(p.flavor||'')} 路 褰撳墠搴撳瓨 <strong>${formatQtyToUnits(current,p.pcs_per_case,p.pcs_per_box,unitOf(p))}</strong> (${current}${esc(unitOf(p))})</div><div class="stock-input-group"><div style="display:flex;gap:8px;margin:8px 0;"><button type="button" class="smallbtn"${buttonStyle(row.direction==='plus')} onclick="stockAdjustmentChange('${esc(p.id)}','direction','plus')">澧炲姞</button><button type="button" class="smallbtn"${buttonStyle(row.direction==='minus')} onclick="stockAdjustmentChange('${esc(p.id)}','direction','minus')">鍑忓皯</button></div><div class="sell-line"><span class="sell-tag" style="background:#756676;">鏁?/span><select class="ios-picker" onchange="stockAdjustmentChange('${esc(p.id)}','qty',this.value)">${makeQtyOptions(100,row.qty)}</select><span class="sell-unit">${esc(unitOf(p))}</span></div><span class="sub">棰勮搴撳瓨锛?strong>${projected}${esc(unitOf(p))}</strong></span></div></div>`;
-  }
-  function selectedHtml(){const selected=products.map(p=>({p,row:draftFor(p.id)})).filter(x=>x.row.qty>0);return selected.length?`<div class="sub" style="margin:12px 0 76px;">宸查€夋嫨鍟嗗搧锛?{selected.map(({p,row})=>`${esc(p.product_name)} ${row.direction==='minus'?'鍑忓皯':'澧炲姞'} ${row.qty}${esc(unitOf(p))}锛岄璁?${Number(stockData.currentStockMap[p.id]||0)+signed(row)}`).join('锛?)}</div>`:'<div class="sub" style="margin:12px 0 76px;">濉啓闈為浂鏁ｆ暟鍚庡皢鍔犲叆鐢宠銆?/div>';}
-  function updateAdjustmentRow(id){const product=products.find(p=>String(p.id)===String(id)),node=$(`stock-adjustment-row-${id}`);if(product&&node)node.outerHTML=adjustmentCard(product);}
-  function updateAdjustmentSummary(){const node=$('stock-adjustment-summary');if(node)node.innerHTML=selectedHtml();}
-  function requestPanels(data){const active=data.filter(x=>['pending_review','rejected'].includes(x.request.status)),history=data.filter(x=>['approved','withdrawn'].includes(x.request.status));const block=(title,list,edit)=>`<details><summary style="font-weight:700;color:var(--primary);margin:10px 0;">${title}锛?{list.length}锛?/summary>${list.map(x=>`<div class="item"><b>${esc(x.request.request_no)} 路 ${esc(StockAdjustmentCore.statusLabel(x.request.status))}</b><div class="sub">${x.items.map(i=>`${esc(i.product_name||i.product_barcode)} ${Number(i.adjustment_qty)>0?'澧炲姞':'鍑忓皯'} ${Math.abs(Number(i.adjustment_qty))}`).join('锛?)}${x.request.rejection_reason?'锛涢┏鍥烇細'+esc(x.request.rejection_reason):''}</div>${edit?`<button class="smallbtn" onclick="editStockAdjustmentRequest('${x.request.id}')">${x.request.status==='pending_review'?'鎾ゅ洖骞朵慨鏀?:'淇敼骞堕噸鏂版彁浜?}</button>`:''}</div>`).join('')||'<div class="sub">鏆傛棤璁板綍</div>'}</details>`;return block('鎴戠殑寰呭鏍稿拰宸查┏鍥炵敵璇?,active,true)+block('鍘嗗彶璁板綍',history.filter(x=>x.request.status==='approved'),false)+block('宸叉挙鍥炵敵璇?,history.filter(x=>x.request.status==='withdrawn'),true);}
-  async function loadPanels(){try{return requestPanels(await stockAdjustmentApi.mine(currentEmployee.code,true));}catch(e){return `<div class="sub">${esc(e.message||'鐢宠璁板綍鍔犺浇澶辫触')}</div>`;}}
-  window.openStockAdjustmentMode=async function(){adjustmentMode=true;STATE='STOCK_ADJUST';clearEditState();renderStockAdjustmentMode();};
-  window.closeStockAdjustmentMode=function(){adjustmentMode=false;clearEditState();STATE='STOCK';renderStockPage();};
-  window.renderStockAdjustmentMode=async function(){if(!adjustmentMode)return;const panel=await loadPanels();$('list').innerHTML=`<div class="top-action-bar"><div class="back-btn" onclick="closeStockAdjustmentMode()">杩斿洖搴撳瓨鏌ョ湅</div></div><div class="big-store-title">鐢宠淇敼搴撳瓨</div><div class="sub">鍙皟鏁存暎鏁帮紱澧炲姞涓烘鏁般€佸噺灏戜负璐熸暟锛屽厑璁搁璁″簱瀛樹负璐熸暟銆?/div>${generateFilterHeaderHtml()}${rows().map(adjustmentCard).join('')}<div id="stock-adjustment-summary">${selectedHtml()}</div><div class="card" style="margin:12px 0;padding:12px;"><select id="adjustReason" class="ios-picker"><option value="inventory_count">鐩樼偣宸紓</option><option value="damage">鐮存崯鎶ュ簾</option><option value="transfer">璋冭揣</option><option value="missed_receipt">婕忓綍鍏ュ簱</option><option value="other">鍏朵粬</option></select><input id="adjustReasonNote" class="ios-picker" placeholder="鍏朵粬鏃跺～鍐欒鏄?><input id="adjustRemark" class="ios-picker" placeholder="澶囨敞锛堝彲閫夛級"></div>${panel}<button class="float-submit" onclick="submitStockAdjustmentRequest()">淇濆瓨骞舵彁浜ゅ鏍?/button>`;if(window.__stockAdjustMeta){$('adjustReason').value=window.__stockAdjustMeta.reason_code;$('adjustReasonNote').value=window.__stockAdjustMeta.reason_note||'';$('adjustRemark').value=window.__stockAdjustMeta.remark||'';}};
-  window.editStockAdjustmentRequest=async function(id){try{const data=await stockAdjustmentApi.mine(currentEmployee.code,true),entry=data.find(x=>x.request.id===id);if(!entry)throw new Error('鏈壘鍒板簱瀛樿皟鏁寸敵璇?);if(entry.request.status==='pending_review')await stockAdjustmentApi.withdraw(id,currentEmployee.code);adjustmentMode=true;STATE='STOCK_ADJUST';editingRequestId=id;adjustments.clear();entry.items.forEach(item=>adjustments.set(String(item.product_barcode),{direction: Number(item.adjustment_qty) < 0 ? 'minus' : 'plus',qty: Math.abs(Number(item.adjustment_qty))}));window.__stockAdjustMeta=entry.request;renderStockAdjustmentMode();}catch(e){alert(e.message||'鎵撳紑鐢宠澶辫触');}};
-  window.submitStockAdjustmentRequest=async function(){const items=[...adjustments.entries()].map(([product_barcode,row])=>({product_barcode,adjustment_qty:signed(row),adjustmentQty:signed(row)})).filter(x=>x.adjustment_qty!==0);if(items.some(x=>!Number.isSafeInteger(x.adjustment_qty)))return alert('鏁ｆ暟蹇呴』鏄潪璐熸暣鏁?);const reason=$('adjustReason').value,note=$('adjustReasonNote').value,remark=$('adjustRemark').value;if(!items.length)return alert('璇峰～鍐欒嚦灏戜竴涓潪闆舵暎鏁?);if(reason==='other'&&!note.trim())return alert('閫夋嫨鍏朵粬鏃跺繀椤诲～鍐欒鏄?);const button=document.querySelector('.float-submit');try{if(button){button.disabled=true;button.textContent='姝ｅ湪鎻愪氦鈥?;}const saved=await stockAdjustmentApi.save(editingRequestId,currentEmployee.code,reason,note,remark,items);await stockAdjustmentApi.submit(saved.request.id,currentEmployee.code);alert('鐢宠宸叉彁浜ゅ鏍?);window.closeStockAdjustmentMode();}catch(e){alert(e.message||'鎻愪氦澶辫触');if(button){button.disabled=false;button.textContent='淇濆瓨骞舵彁浜ゅ鏍?;}}};
-  const oldRenderStockPage=window.renderStockPage;
-  window.renderStockPage=function(){oldRenderStockPage();if(!adjustmentMode){const title=$('list').querySelector('.sub');if(title)title.insertAdjacentHTML('afterend',`<button class="smallbtn" style="margin:8px 0;" onclick="openStockAdjustmentMode()">鐢宠淇敼搴撳瓨</button>`);}};
-})();
+(function() {
+  let adjustmentMode = false;
+  let editingRequestId = null;
+  let editMeta = null;
+  let requestPanelsHtml = '';
+  const adjustments = new Map();
+  const stockAdjustmentApi = StockAdjustmentApi.create(client);
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+  })[char]);
+  const initialAdjust = new URLSearchParams(location.search).get('adjust') === '1';
+  const originalOpenStockManagement = window.openStockManagement;
+  const originalSelectBrand = window.selectBrand;
+  const originalSelectSpec = window.selectSpec;
 
+  window.openStockManagement = async function() {
+    await originalOpenStockManagement();
+    if (initialAdjust) await window.openStockAdjustmentMode();
+  };
+
+  window.selectBrand = function(value) {
+    if (!adjustmentMode) return originalSelectBrand(value);
+    currentSelectedBrand = value;
+    currentSelectedSpec = getSpecsForBrand(value)[0] || '';
+    renderAdjustmentProductArea();
+  };
+
+  window.selectSpec = function(value) {
+    if (!adjustmentMode) return originalSelectSpec(value);
+    currentSelectedSpec = value;
+    renderAdjustmentProductArea();
+  };
+
+  function rows() {
+    return orderedProducts(products.filter(product => (
+      product.brand === currentSelectedBrand && product.spec === currentSelectedSpec
+    )));
+  }
+
+  function draftFor(id) {
+    return adjustments.get(String(id)) || { direction: 'plus', qty: 0 };
+  }
+
+  function signed(row) {
+    return row.direction === 'minus' ? -row.qty : row.qty;
+  }
+
+  function clearEditState() {
+    editingRequestId = null;
+    editMeta = null;
+    adjustments.clear();
+  }
+
+  function setDraft(id, field, value) {
+    const key = String(id);
+    const row = { ...draftFor(key) };
+    if (field === 'qty') {
+      const qty = Number(value);
+      row.qty = Number.isSafeInteger(qty) && qty >= 0 ? qty : 0;
+    } else if (field === 'direction' && (value === 'plus' || value === 'minus')) {
+      row.direction = value;
+    }
+    adjustments.set(key, row);
+    updateAdjustmentRow(key);
+    updateAdjustmentSummary();
+  }
+
+  window.stockAdjustmentChange = function(id, field, value) {
+    setDraft(id, field, value);
+  };
+
+  function directionButton(id, value, label, selected) {
+    const selectedStyle = selected
+      ? ' style="background:var(--primary);border-color:var(--primary);color:#fff;"'
+      : '';
+    return `<button type="button" class="smallbtn"${selectedStyle} onclick="stockAdjustmentChange('${esc(id)}','direction','${value}')">${label}</button>`;
+  }
+
+  function adjustmentCard(product) {
+    const row = draftFor(product.id);
+    const current = Number(stockData.currentStockMap[product.id] || 0);
+    const projected = current + signed(row);
+    return `<div class="stock-row" id="stock-adjustment-row-${esc(product.id)}">
+      <div class="prod-info">
+        <div class="prod-name flavor-badge">${esc(product.product_name)}</div>
+        <div class="sub">${esc(product.spec)} ${esc(product.flavor || '')}</div>
+        <div class="stock-qty">当前库存：<strong>${formatQtyToUnits(current, product.pcs_per_case, product.pcs_per_box, unitOf(product))}</strong> (${current}${esc(unitOf(product))})</div>
+      </div>
+      <div class="control-group">
+        <div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;">
+          ${directionButton(product.id, 'plus', '增加', row.direction === 'plus')}
+          ${directionButton(product.id, 'minus', '减少', row.direction === 'minus')}
+        </div>
+        <div class="sell-line">
+          <span class="sell-tag" style="background:#756676;">散</span>
+          <select class="ios-picker" onchange="stockAdjustmentChange('${esc(product.id)}','qty',this.value)">${makeQtyOptions(100,row.qty)}</select>
+          <span class="sell-unit">${esc(unitOf(product))}</span>
+        </div>
+        <div class="sub">预计库存：<strong>${projected}${esc(unitOf(product))}</strong></div>
+      </div>
+    </div>`;
+  }
+
+  function selectedHtml() {
+    const selected = products
+      .map(product => ({ product, row: draftFor(product.id) }))
+      .filter(entry => entry.row.qty > 0);
+    if (!selected.length) {
+      return '<div class="sub" style="margin:12px 0 76px;">选择非零散数后将自动加入申请。</div>';
+    }
+    return `<div class="sub" style="margin:12px 0 76px;">已选择商品：${selected.map(({ product, row }) => {
+      const projected = Number(stockData.currentStockMap[product.id] || 0) + signed(row);
+      return `${esc(product.product_name)} ${row.direction === 'minus' ? '减少' : '增加'} ${row.qty}${esc(unitOf(product))}，预计 ${projected}${esc(unitOf(product))}`;
+    }).join('；')}</div>`;
+  }
+
+  function updateAdjustmentRow(id) {
+    const product = products.find(item => String(item.id) === String(id));
+    const node = $(`stock-adjustment-row-${id}`);
+    if (product && node) node.outerHTML = adjustmentCard(product);
+  }
+
+  function updateAdjustmentSummary() {
+    const node = $('stock-adjustment-summary');
+    if (node) node.innerHTML = selectedHtml();
+  }
+
+  function renderAdjustmentProductArea() {
+    const filters = $('stock-adjustment-filters');
+    const list = $('stock-adjustment-products');
+    if (filters) filters.innerHTML = generateFilterHeaderHtml();
+    if (list) list.innerHTML = rows().map(adjustmentCard).join('');
+  }
+
+  function requestPanels(data) {
+    const entries = Array.isArray(data) ? data : [];
+    const active = entries.filter(entry => ['pending_review', 'rejected'].includes(entry.request.status));
+    const history = entries.filter(entry => ['approved', 'withdrawn'].includes(entry.request.status));
+    const block = (title, list, editable) => `<details>
+      <summary style="font-weight:700;color:var(--primary);margin:10px 0;">${title}（${list.length}）</summary>
+      ${list.map(entry => `<div class="item">
+        <b>${esc(entry.request.request_no)} · ${esc(StockAdjustmentCore.statusLabel(entry.request.status))}</b>
+        <div class="sub">${(entry.items || []).map(item => `${esc(item.product_name || item.product_barcode)} ${Number(item.adjustment_qty) > 0 ? '增加' : '减少'} ${Math.abs(Number(item.adjustment_qty))}`).join('；')}${entry.request.rejection_reason ? `；驳回：${esc(entry.request.rejection_reason)}` : ''}</div>
+        ${editable ? `<button class="smallbtn" onclick="editStockAdjustmentRequest('${esc(entry.request.id)}')">${entry.request.status === 'pending_review' ? '撤回并修改' : '修改并重新提交'}</button>` : ''}
+      </div>`).join('') || '<div class="sub">暂无记录</div>'}
+    </details>`;
+    return block('我的待审核和已驳回申请', active, true)
+      + block('历史记录', history.filter(entry => entry.request.status === 'approved'), false)
+      + block('已撤回申请', history.filter(entry => entry.request.status === 'withdrawn'), true);
+  }
+
+  async function loadPanels() {
+    try {
+      return requestPanels(await stockAdjustmentApi.mine(currentEmployee.code, true));
+    } catch (error) {
+      return `<div class="sub">${esc(error.message || '申请记录加载失败')}</div>`;
+    }
+  }
+
+  function applyEditMeta() {
+    if (!editMeta) return;
+    const reason = $('adjustReason');
+    const note = $('adjustReasonNote');
+    const remark = $('adjustRemark');
+    if (reason) reason.value = editMeta.reason_code || 'inventory_count';
+    if (note) note.value = editMeta.reason_note || '';
+    if (remark) remark.value = editMeta.remark || '';
+  }
+
+  window.openStockAdjustmentMode = async function() {
+    adjustmentMode = true;
+    STATE = 'STOCK_ADJUST';
+    clearEditState();
+    requestPanelsHtml = await loadPanels();
+    await window.renderStockAdjustmentMode();
+  };
+
+  window.closeStockAdjustmentMode = function() {
+    adjustmentMode = false;
+    clearEditState();
+    STATE = 'STOCK';
+    renderStockPage();
+  };
+
+  window.renderStockAdjustmentMode = async function() {
+    if (!adjustmentMode) return;
+    $('list').innerHTML = `<div class="top-action-bar"><div class="back-btn" onclick="closeStockAdjustmentMode()">返回库存查看</div></div>
+      <div class="big-store-title">申请修改库存</div>
+      <div class="sub">只调整散数；增加为正数、减少为负数，允许预计库存为负数。</div>
+      <div id="stock-adjustment-filters"></div>
+      <div id="stock-adjustment-products"></div>
+      <div id="stock-adjustment-summary">${selectedHtml()}</div>
+      <div class="card" style="margin:12px 0;padding:12px;">
+        <select id="adjustReason" class="ios-picker">
+          <option value="inventory_count">盘点差异</option>
+          <option value="damage">破损报废</option>
+          <option value="transfer">调货</option>
+          <option value="missed_receipt">漏录入库</option>
+          <option value="other">其他</option>
+        </select>
+        <input id="adjustReasonNote" class="ios-picker" placeholder="其他时填写说明">
+        <input id="adjustRemark" class="ios-picker" placeholder="备注（可选）">
+      </div>
+      <div id="stock-adjustment-request-panels">${requestPanelsHtml}</div>
+      <button id="stockAdjustmentSubmit" class="float-submit" onclick="submitStockAdjustmentRequest()">保存并提交审核</button>`;
+    renderAdjustmentProductArea();
+    applyEditMeta();
+  };
+
+  window.editStockAdjustmentRequest = async function(id) {
+    try {
+      const data = await stockAdjustmentApi.mine(currentEmployee.code, true);
+      const entry = (Array.isArray(data) ? data : []).find(item => item.request.id === id);
+      if (!entry) throw new Error('未找到库存调整申请');
+      if (entry.request.status === 'pending_review') {
+        await stockAdjustmentApi.withdraw(id, currentEmployee.code);
+      }
+      adjustmentMode = true;
+      STATE = 'STOCK_ADJUST';
+      editingRequestId = id;
+      editMeta = entry.request;
+      adjustments.clear();
+      (entry.items || []).forEach(item => adjustments.set(String(item.product_barcode), {
+        direction: Number(item.adjustment_qty) < 0 ? 'minus' : 'plus',
+        qty: Math.abs(Number(item.adjustment_qty)),
+      }));
+      requestPanelsHtml = await loadPanels();
+      await window.renderStockAdjustmentMode();
+    } catch (error) {
+      alert(error.message || '打开申请失败');
+    }
+  };
+
+  window.submitStockAdjustmentRequest = async function() {
+    const items = [...adjustments.entries()]
+      .map(([product_barcode, row]) => ({ product_barcode, adjustment_qty: signed(row) }))
+      .filter(item => item.adjustment_qty !== 0);
+    if (items.some(item => !Number.isSafeInteger(item.adjustment_qty))) {
+      alert('散数必须是非负整数');
+      return;
+    }
+    const reason = $('adjustReason').value;
+    const note = $('adjustReasonNote').value;
+    const remark = $('adjustRemark').value;
+    if (!items.length) {
+      alert('请选择至少一个非零散数');
+      return;
+    }
+    if (reason === 'other' && !note.trim()) {
+      alert('选择其他时必须填写说明');
+      return;
+    }
+
+    const button = $('stockAdjustmentSubmit');
+    try {
+      if (button) {
+        button.disabled = true;
+        button.textContent = '正在提交..';
+      }
+      const saved = await stockAdjustmentApi.save(
+        editingRequestId,
+        currentEmployee.code,
+        reason,
+        note,
+        remark,
+        items,
+      );
+      const requestId = saved?.request?.id || saved?.id;
+      if (!requestId) throw new Error('保存申请后未返回申请编号');
+      await stockAdjustmentApi.submit(requestId, currentEmployee.code);
+      alert('申请已提交审核');
+      window.closeStockAdjustmentMode();
+    } catch (error) {
+      alert(error.message || '提交失败');
+      if (button) {
+        button.disabled = false;
+        button.textContent = '保存并提交审核';
+      }
+    }
+  };
+
+  const oldRenderStockPage = window.renderStockPage;
+  window.renderStockPage = function() {
+    oldRenderStockPage();
+    if (!adjustmentMode) {
+      const title = $('list').querySelector('.sub');
+      if (title) {
+        title.insertAdjacentHTML('afterend', '<button class="smallbtn" style="margin:8px 0;" onclick="openStockAdjustmentMode()">申请修改库存</button>');
+      }
+    }
+  };
+})();
