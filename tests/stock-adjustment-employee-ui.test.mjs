@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const source = fs.readFileSync(new URL('../store-stock-adjustment.js', import.meta.url), 'utf8');
+const popupSource = fs.readFileSync(new URL('../store-qty-popup.js', import.meta.url), 'utf8');
 
 test('employee adjustment page injects its own Supabase client into the shared API', () => {
   assert.match(source, /StockAdjustmentApi\.create\(client\)/);
@@ -24,6 +25,21 @@ test('loose quantity reuses the order page picker controls', () => {
   assert.match(source, /class="sell-unit"/);
   assert.doesNotMatch(source, /type="number"/);
   assert.doesNotMatch(source, /箱数|盒数|wholeQty|caseQty|boxQty/);
+});
+
+test('adjustment mode hides the page-level back button so only one return control remains', () => {
+  assert.match(source, /function setBaseBackVisible/);
+  assert.match(source, /setBaseBackVisible\(false\)/);
+  assert.match(source, /setBaseBackVisible\(true\)/);
+  assert.match(source, /返回库存查看/);
+});
+
+test('stock adjustment quantity is handled by the same 5x5 popup used by order entry', () => {
+  assert.match(popupSource, /QUICK_NUMBERS = Array\.from\(\{ length: 25 \}/);
+  assert.match(popupSource, /qty-popup-grid-5/);
+  assert.match(popupSource, /parseStockAdjustmentSelect/);
+  assert.match(popupSource, /stockAdjustmentChange/);
+  assert.match(popupSource, /STATE\.handler === 'stockAdjustment'/);
 });
 
 test('single product changes update only the row and summary', () => {
