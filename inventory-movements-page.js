@@ -48,6 +48,7 @@
   function setRange(range) {
     currentRange = range;
     $('range_all').classList.toggle('active', range === 'all');
+    closeDateRangePicker();
     applyRangeValues();
     query();
   }
@@ -59,6 +60,7 @@
   function openDateRangePicker() {
     currentRange = 'custom';
     $('range_all').classList.remove('active');
+    document.querySelector('.inventory-movements-page').classList.add('date-range-open');
     if (!rangeCalendarBase) {
       const base = customRangeStart ? new Date(`${customRangeStart}T00:00:00`) : new Date(`${today}T00:00:00`);
       setRangeCalendarBase(base);
@@ -69,6 +71,7 @@
 
   function closeDateRangePicker() {
     $('dateRangePanel').classList.add('hide');
+    document.querySelector('.inventory-movements-page').classList.remove('date-range-open');
   }
 
   function shiftRangeMonth(delta) {

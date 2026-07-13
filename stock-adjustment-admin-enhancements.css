@@ -5,6 +5,10 @@
   overflow: visible;
 }
 
+.inventory-movements-page.date-range-open .page-header-card {
+  margin-bottom: 352px;
+}
+
 .range-row {
   display: flex;
   align-items: center;
@@ -46,7 +50,7 @@
   position: absolute;
   top: 46px;
   right: 0;
-  z-index: 30;
+  z-index: 50;
   width: 520px;
   padding: 12px;
   border: 1px solid var(--line);

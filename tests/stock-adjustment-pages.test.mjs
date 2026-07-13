@@ -86,9 +86,12 @@ test('movement page uses the dashboard date-range picker with automatic loading'
   assert.match(movements, /function renderDateRangePanel\(/);
   assert.match(movements, /function renderMonth\(/);
   assert.match(movements, /function pickRangeDate\(/);
+  assert.match(movements, /classList\.add\('date-range-open'\)/);
+  assert.match(movements, /classList\.remove\('date-range-open'\)/);
   assert.match(movements, /\$\('employee'\)\.onchange = query/);
   assert.match(movements, /\$\('type'\)\.onchange = query/);
   assert.match(styles, /\.inventory-movements-page/);
+  assert.match(enhancements, /\.inventory-movements-page\.date-range-open \.page-header-card/);
 });
 
 test('review history shows employee names and spec flavor without product names', () => {
