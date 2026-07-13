@@ -48,7 +48,7 @@ jobs:
                   print(f'{path}: ' + ' -> '.join(scripts))
           PY
       - name: Create repository snapshot
-        run: tar --exclude=.git --exclude=repo-source.tar.gz -czf repo-source.tar.gz .
+        run: git archive --format=tar.gz --output=repo-source.tar.gz HEAD
       - name: Upload audit report
         uses: actions/upload-artifact@v4
         with:
