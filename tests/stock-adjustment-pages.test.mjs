@@ -32,6 +32,16 @@ test('dashboard inventory management shows the pending review count as a notific
   assert.match(dashboard, /notification-badge/);
 });
 
+test('dashboard export reloads every page of the currently selected date range before creating Excel', () => {
+  assert.match(dashboard, /async function loadOrdersForExport\(\)/);
+  assert.match(dashboard, /\.range\(from,from\+pageSize-1\)/);
+  assert.match(dashboard, /orders=await loadOrdersForExport\(\)/);
+  const exportStart = dashboard.indexOf('async function exportOrderExcel()');
+  const exportEnd = dashboard.indexOf('async function loadDashboard()', exportStart);
+  const exportBody = dashboard.slice(exportStart, exportEnd);
+  assert.doesNotMatch(exportBody, /getFilteredOrders\(\)/);
+});
+
 test('admin review page uses an explicitly injected API client', () => {
   assert.match(review, /StockAdjustmentApi\.create\(client\)/);
   assert.match(review, /stockAdjustmentApi\.pending\(\)/);
