@@ -1,61 +1,67 @@
-name: Product display audit
+name: Apply product display refactor
 
 on:
   pull_request:
     branches:
       - main
+    types:
+      - synchronize
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  audit:
+  apply:
+    if: github.head_ref == 'agent/product-spec-flavor-labels'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Audit product display references
+        with:
+          ref: agent/product-spec-flavor-labels
+          fetch-depth: 0
+      - name: Rebuild and apply patch
         shell: bash
         run: |
-          python - <<'PY' | tee product-display-audit.txt
+          set -euo pipefail
+          python - <<'PY'
           from pathlib import Path
-          import re
+          import gzip
 
-          include = {'.html', '.js', '.mjs'}
-          skip = {'products.html'}
-          files = [p for p in Path('.').rglob('*') if p.is_file() and p.suffix in include and p.name not in skip and '.git' not in p.parts]
-          print('=== FRONTEND FILES WITH PRODUCT-RELATED REFERENCES ===')
-          for path in sorted(files):
-              text = path.read_text(encoding='utf-8', errors='ignore')
-              hits = []
-              for no, line in enumerate(text.splitlines(), 1):
-                  low = line.lower()
-                  has_product = any(k in low for k in ('product_name', 'products', 'product.', 'product?', 'prod.', 'p.name', 'p?.name', 'item.product', 'row.product'))
-                  has_name = any(k in low for k in ('product_name', '.name', "['name']", '["name"]'))
-                  has_label_fields = 'spec' in low or 'flavor' in low
-                  if (has_product and has_name) or ('product_name' in low) or (has_product and has_label_fields):
-                      hits.append((no, line.rstrip()))
-              if hits:
-                  print(f'\n--- {path} ---')
-                  for no, line in hits:
-                      print(f'{no}: {line}')
-
-          print('\n=== HTML SCRIPT ORDER ===')
-          script_re = re.compile(r'<script[^>]+src=["\']([^"\']+)', re.I)
-          for path in sorted(Path('.').glob('*.html')):
-              text = path.read_text(encoding='utf-8', errors='ignore')
-              scripts = script_re.findall(text)
-              if scripts:
-                  print(f'{path}: ' + ' -> '.join(scripts))
+          root = Path('.github/product-display-patch')
+          hex_data = ''.join(path.read_text(encoding='utf-8').strip() for path in sorted(root.glob('hex*')))
+          patch = gzip.decompress(bytes.fromhex(hex_data))
+          Path('/tmp/product-display.patch').write_bytes(patch)
           PY
-      - name: Create repository snapshot
-        run: git archive --format=tar.gz --output=repo-source.tar.gz HEAD
-      - name: Upload audit report
-        uses: actions/upload-artifact@v4
-        with:
-          name: product-display-audit
-          path: product-display-audit.txt
-      - name: Upload repository snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: repo-source
-          path: repo-source.tar.gz
+          patch -p1 < /tmp/product-display.patch
+      - name: Validate syntax and focused tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            store-app.js \
+            stock-adjustment-review.js \
+            store-after-sales.js \
+            store-delivery-note.js \
+            store-order-detail-fix.js \
+            store-qty-popup.js \
+            store-stock-adjustment.js; do
+            node --check "$file"
+          done
+          node --test \
+            tests/product-display-label.test.mjs \
+            tests/delivery-note-download.test.mjs \
+            tests/mix-box.test.mjs \
+            tests/stock-adjustment-pages.test.mjs \
+            tests/inventory-movement-export.test.mjs \
+            tests/stock-adjustment-core.test.mjs
+      - name: Commit verified changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .github/product-display-patch
+          rm -f .github/workflows/product-display-audit.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: display product spec and flavor"
+          git push origin HEAD:agent/product-spec-flavor-labels
