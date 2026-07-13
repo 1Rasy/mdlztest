@@ -1,0 +1,51 @@
+name: Product display audit
+
+on:
+  push:
+    branches:
+      - agent/product-spec-flavor-labels
+    paths:
+      - .github/workflows/product-display-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit product display references
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          include = {'.html', '.js', '.mjs'}
+          skip = {'products.html'}
+          files = [p for p in Path('.').rglob('*') if p.is_file() and p.suffix in include and p.name not in skip and '.git' not in p.parts]
+          print('=== FRONTEND FILES WITH PRODUCT-RELATED REFERENCES ===')
+          for path in sorted(files):
+              text = path.read_text(encoding='utf-8', errors='ignore')
+              hits = []
+              for no, line in enumerate(text.splitlines(), 1):
+                  low = line.lower()
+                  has_product = any(k in low for k in ('product_name', 'products', 'product.', 'product?', 'prod.', 'p.name', 'p?.name', 'item.product', 'row.product'))
+                  has_name = any(k in low for k in ('product_name', '.name', "['name']", '["name"]'))
+                  has_label_fields = 'spec' in low or 'flavor' in low
+                  if (has_product and has_name) or ('product_name' in low) or (has_product and has_label_fields):
+                      hits.append((no, line.rstrip()))
+              if hits:
+                  print(f'\n--- {path} ---')
+                  for no, line in hits:
+                      print(f'{no}: {line}')
+
+          print('\n=== HTML SCRIPT ORDER ===')
+          script_re = re.compile(r'<script[^>]+src=["\']([^"\']+)', re.I)
+          for path in sorted(Path('.').glob('*.html')):
+              text = path.read_text(encoding='utf-8', errors='ignore')
+              scripts = script_re.findall(text)
+              if scripts:
+                  print(f'{path}: ' + ' -> '.join(scripts))
+          PY
