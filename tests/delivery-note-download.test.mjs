@@ -27,7 +27,7 @@ assert.ok(storeStyle.includes('.order-detail-list'), 'order detail list should b
 assert.ok(storeStyle.includes('.order-detail-row'), 'order detail row should be styled centrally');
 assert.ok(storeStyle.includes('.order-detail-flavor'), 'order detail flavor rows should be styled centrally');
 assert.ok(afterSales.includes('order-detail-row'), 'after-sales detail override should use the same detail row class');
-assert.ok(afterSales.includes('orderDetailFlavorLabel(p,{barcode})'), 'after-sales-only rows should reuse spec/flavor detail labels');
+assert.ok(afterSales.includes('productDisplayName(p,barcode)'), 'after-sales-only rows should use the shared spec/flavor display label');
 assert.ok(storeHtml.indexOf('store-app.js') < storeHtml.indexOf('store-delivery-note.js'), 'delivery note module should load after store app helpers');
 assert.ok(storeHtml.indexOf('store-delivery-note.js') < storeHtml.indexOf('store-after-sales.js'), 'delivery note module should load before after-sales overrides');
 assert.ok(!storeApp.includes('async function getDeliveryNoteRows(orderNo)'), 'store app should not own delivery note aggregation');

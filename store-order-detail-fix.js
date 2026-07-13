@@ -63,7 +63,7 @@
     const m = new Map();
     (items || []).forEach(it=>{
       const bc = String(it.barcode || '');
-      const p = products.find(x=>String(x.id)===bc) || products.find(x=>String(x.barcode)===bc) || {id:bc,barcode:bc,product_name:it.product_name||bc,unit:'个',pcs_per_case:1,pcs_per_box:0,spec:'',flavor:''};
+      const p = products.find(x=>String(x.id)===bc) || products.find(x=>String(x.barcode)===bc) || {id:bc,barcode:bc,product_name:bc,unit:'个',pcs_per_case:1,pcs_per_box:0,spec:'',flavor:''};
       const key = orderDetailGroupKey(p,it);
       const flavor = orderDetailFlavorLabel(p,it);
       if(!m.has(key)){

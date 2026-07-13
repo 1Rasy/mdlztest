@@ -148,7 +148,7 @@
       <div class="stock-adjustment-request-list">
         ${list.map(entry => `<div class="item stock-adjustment-request-item">
           <b>${esc(entry.request.request_no)} · ${esc(StockAdjustmentCore.statusLabel(entry.request.status))}</b>
-          <div class="sub">${(entry.items || []).map(item => `${esc(item.product_name || item.product_barcode)} ${Number(item.adjustment_qty) > 0 ? '增加' : '减少'} ${Math.abs(Number(item.adjustment_qty))}`).join('；')}${entry.request.rejection_reason ? `；驳回：${esc(entry.request.rejection_reason)}` : ''}</div>
+          <div class="sub">${(entry.items || []).map(item => `${esc(StockAdjustmentCore.formatSpecFlavor(item) || item.product_barcode)} ${Number(item.adjustment_qty) > 0 ? '增加' : '减少'} ${Math.abs(Number(item.adjustment_qty))}`).join('；')}${entry.request.rejection_reason ? `；驳回：${esc(entry.request.rejection_reason)}` : ''}</div>
           ${editable ? `<button class="smallbtn" onclick="editStockAdjustmentRequest('${esc(entry.request.id)}')">${requestActionLabel(entry.request.status)}</button>` : ''}
         </div>`).join('') || '<div class="sub stock-adjustment-request-empty">暂无记录</div>'}
       </div>

@@ -113,7 +113,7 @@
 
   function afterSaleDisplayName(barcode){
     const p = productForAfterSale(barcode);
-    return `${orderDetailSpecLabel(p,{barcode})}${orderDetailFlavorLabel(p,{barcode})}`;
+    return productDisplayName(p,barcode);
   }
   function afterSaleDisplayUnit(barcode){
     return unitOf(productForAfterSale(barcode));
