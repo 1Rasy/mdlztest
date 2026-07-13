@@ -16,7 +16,7 @@ jobs:
       - name: Audit product display references
         shell: bash
         run: |
-          python - <<'PY'
+          python - <<'PY' | tee product-display-audit.txt
           from pathlib import Path
           import re
 
@@ -47,3 +47,8 @@ jobs:
               if scripts:
                   print(f'{path}: ' + ' -> '.join(scripts))
           PY
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-display-audit
+          path: product-display-audit.txt
