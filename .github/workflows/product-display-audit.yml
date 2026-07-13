@@ -1,11 +1,9 @@
 name: Product display audit
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/product-spec-flavor-labels
-    paths:
-      - .github/workflows/product-display-audit.yml
+      - main
 
 permissions:
   contents: read
