@@ -31,7 +31,7 @@ assert.ok(productsPage.includes('data-field="allow_mix_box"'), 'products page sh
 assert.ok(mixBoxSql.includes('add column if not exists allow_mix_box boolean not null default false'), 'allow_mix_box migration should add the product flag safely');
 
 const dashboardPage = readFileSync(join(root, 'dashboard.html'), 'utf8');
-assert.ok(deliveryNote.includes("saleUnit.includes('\\u62fc\\u76d2')"), 'delivery note should recognize mixed-box sale units');
+assert.ok(deliveryNote.includes("saleUnit.includes('拼盒')"), 'delivery note should recognize mixed-box sale units');
 assert.ok(deliveryNote.includes('row.wholeQty+=saleQty/wholeSize'), 'delivery note should convert mixed loose quantities to whole boxes');
 assert.ok(dashboardPage.includes('pcs_per_box'), 'dashboard export should load box size for mixed boxes');
 assert.ok(dashboardPage.includes("saleUnit==='拼盒'"), 'dashboard should detect mixed-box sale rows');

@@ -52,12 +52,12 @@
       </div>
       <div class="review-request-reason"><div><strong>调整原因：</strong>${esc(reason)}</div><div class="review-request-note">${detailNote ? esc(detailNote) : '无补充说明'}</div></div>
       <div class="review-request-table"><div class="table-wrap"><table class="review-table">
-        <thead><tr><th>商品名称/规格口味</th><th>条码</th><th>当前库存</th><th>调整</th><th>审核后库存</th></tr></thead>
+        <thead><tr><th>规格口味</th><th>条码</th><th>当前库存</th><th>调整</th><th>审核后库存</th></tr></thead>
         <tbody>${(entry.items || []).map(item => {
           const before = stock.get(item.product_barcode) || 0;
           const delta = Number(item.adjustment_qty);
           const after = before + delta;
-          return `<tr><td>${esc([item.product_name, item.spec, item.flavor].filter(Boolean).join(' '))}</td><td class="cell-nowrap">${esc(item.product_barcode)}</td><td class="cell-number stock-number">${before}</td><td class="cell-number ${quantityClass(delta)}">${delta > 0 ? '+' : ''}${delta}</td><td class="cell-number ${after < 0 ? 'qty-negative' : 'stock-number'}">${after}</td></tr>`;
+          return `<tr><td>${esc(StockAdjustmentCore.formatSpecFlavor(item) || item.product_barcode)}</td><td class="cell-nowrap">${esc(item.product_barcode)}</td><td class="cell-number stock-number">${before}</td><td class="cell-number ${quantityClass(delta)}">${delta > 0 ? '+' : ''}${delta}</td><td class="cell-number ${after < 0 ? 'qty-negative' : 'stock-number'}">${after}</td></tr>`;
         }).join('')}</tbody>
       </table></div></div>
       <div class="review-request-actions"><button class="danger-outline" onclick="window.rejectAdjustment('${esc(request.id)}')">驳回</button><button class="primary" onclick="window.approveAdjustment('${esc(request.id)}')">同意</button></div>

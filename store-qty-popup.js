@@ -209,7 +209,8 @@
       const size = mixBoxSize(list);
       if(qty > 0 && size > 0 && qty % size !== 0){
         const first = list[0] || {};
-        const productName = `${first.brand || ''}${first.spec || ''}`.trim() || first.product_name || '\u62fc\u76d2\u5546\u54c1';
+        const flavors = [...new Set(list.map(product => String(product.flavor || '').trim()).filter(Boolean))].join('/');
+        const productName = [first.spec, flavors].map(value => String(value || '').trim()).filter(Boolean).join(' ') || String(first.id || '\u62fc\u76d2\u5546\u54c1');
         const unit = unitOf(first);
         return `\n${productName}\n\u5df2\u9009${qty}${unit}\uff0c\u5fc5\u987b\u6309${size}\u7684\u500d\u6570\u6574\u76d2\u63d0\u4ea4`;
       }

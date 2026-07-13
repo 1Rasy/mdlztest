@@ -62,8 +62,9 @@ function formatDate(value){if(!value)return'-';const d=new Date(value);if(Number
 function setStatus(msg,cls=''){const el=document.getElementById('status');el.className='status '+cls;el.textContent=msg}
 function hideStatus(){const el=document.getElementById('status');el.className='status hide';el.textContent=''}
 function productSortValue(p){const s=Number(p.sort_order);if(Number.isFinite(s)&&s>0)return s;const i=Number(p.id||0);return Number.isFinite(i)&&i>0?i*10:999999}
-function compareProducts(a,b){const d=productSortValue(a)-productSortValue(b);if(d!==0)return d;return String(a.name||a.barcode||'').localeCompare(String(b.name||b.barcode||''),'zh-CN',{numeric:true})}
-function productDisplay(barcode){const p=productMap.get(String(barcode||''));if(!p)return{title:String(barcode||'未知条码'),pcs_per_case:0,pcs_per_box:0,unit:'个',sort_order:999999};return{title:p.name||barcode,pcs_per_case:num(p.pcs_per_case),pcs_per_box:num(p.pcs_per_box),unit:p.unit||'个',sort_order:num(p.sort_order)||productSortValue(p),id:p.id||0};}
+function productDisplayName(product,fallback=''){const label=[product?.spec,product?.flavor].map(v=>String(v??'').trim()).filter(Boolean).join(' ');return label||String(fallback||product?.barcode||product?.id||'').trim()}
+function compareProducts(a,b){const d=productSortValue(a)-productSortValue(b);if(d!==0)return d;return productDisplayName(a,a.barcode).localeCompare(productDisplayName(b,b.barcode),'zh-CN',{numeric:true})}
+function productDisplay(barcode){const p=productMap.get(String(barcode||''));if(!p)return{title:String(barcode||'未知条码'),pcs_per_case:0,pcs_per_box:0,unit:'个',sort_order:999999};return{title:productDisplayName(p,barcode),pcs_per_case:num(p.pcs_per_case),pcs_per_box:num(p.pcs_per_box),unit:p.unit||'个',sort_order:num(p.sort_order)||productSortValue(p),id:p.id||0};}
 function formatStockUnits(totalPcs,product){const pcs=num(totalPcs),specCase=num(product.pcs_per_case)||0,specBox=num(product.pcs_per_box)||0,unit=product.unit||'个';if(specCase<=0)return `${qty(pcs)}${unit}`;const sign=pcs<0?'-':'';let rest=Math.abs(pcs);const cases=Math.floor(rest/specCase);rest=rest%specCase;if(specBox>0){const boxes=Math.floor(rest/specBox),loose=rest%specBox;return `${sign}${cases}件 ${boxes}盒 ${loose}${unit}`;}return `${sign}${cases}件 ${rest}${unit}`;}
 function clearSearch(){document.getElementById('searchInput').value='';renderAll()}
 function toggleExpand(code){expandedEmployee=expandedEmployee===code?'':code;renderAll()}
@@ -92,12 +93,12 @@ function buildRows(){
 }
 function renderMetrics(rows){const totalEmployees=new Set(stocks.map(st=>String(st.employee_code||'')).filter(Boolean)).size;const negativeRows=stocks.filter(st=>num(st.qty)<0);document.getElementById('metricGrid').innerHTML=`<div class="metric"><div class="label">有库存员工</div><div class="value">${totalEmployees}</div><div class="hint">当前筛选显示 ${rows.length} 人</div></div><div class="metric"><div class="label">负数异常</div><div class="value">${negativeRows.length}</div></div>`;}
 function renderEmployeeRows(rows){const tbody=document.getElementById('employeeRows');if(!rows.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty">暂无库存数据</div></td></tr>';return;}tbody.innerHTML=rows.map(row=>{const open=expandedEmployee===row.employee_code;return `<tr class="clickable" onclick="toggleExpand('${esc(row.employee_code)}')"><td><span class="pill">${open?'收起':'展开'}</span></td><td><strong>${esc(row.name||row.employee_code)}</strong>${row.is_active?'':'<div class="sub">已停用</div>'}</td><td class="amount">${row.itemCount}</td><td class="amount">${qty(row.totalQty)}</td><td>${row.negativeCount?`<span class="pill warn">${row.negativeCount}</span>`:'0'}</td><td>${esc(formatDate(row.lastUpdated))}</td></tr>${open?renderDetailRow(row):''}`;}).join('')}
-function renderDetailRow(row){return `<tr class="detail-row"><td colspan="6"><div class="detail-box"><div class="detail-title"><strong>${esc(row.name||row.employee_code)} 的库存明细</strong></div><div class="table-wrap"><table class="detail-table"><thead><tr><th>商品</th><th>条码</th><th>库存散数</th><th>换算显示</th><th>箱规</th><th>盒规</th><th>更新时间</th></tr></thead><tbody>${row.items.map(item=>{const cls=item.qty<0?'qty-negative':(item.qty===0?'qty-zero':'amount');return `<tr><td><span class="detail-product">${esc(item.product.title)}</span></td><td>${esc(item.product_barcode)}</td><td class="${cls}">${qty(item.qty)}</td><td>${esc(formatStockUnits(item.qty,item.product))}</td><td>${item.product.pcs_per_case||'-'}</td><td>${item.product.pcs_per_box||'-'}</td><td>${esc(formatDate(item.updated_at))}</td></tr>`;}).join('')}</tbody></table></div></div></td></tr>`;}
+function renderDetailRow(row){return `<tr class="detail-row"><td colspan="6"><div class="detail-box"><div class="detail-title"><strong>${esc(row.name||row.employee_code)} 的库存明细</strong></div><div class="table-wrap"><table class="detail-table"><thead><tr><th>规格口味</th><th>条码</th><th>库存散数</th><th>换算显示</th><th>箱规</th><th>盒规</th><th>更新时间</th></tr></thead><tbody>${row.items.map(item=>{const cls=item.qty<0?'qty-negative':(item.qty===0?'qty-zero':'amount');return `<tr><td><span class="detail-product">${esc(item.product.title)}</span></td><td>${esc(item.product_barcode)}</td><td class="${cls}">${qty(item.qty)}</td><td>${esc(formatStockUnits(item.qty,item.product))}</td><td>${item.product.pcs_per_case||'-'}</td><td>${item.product.pcs_per_box||'-'}</td><td>${esc(formatDate(item.updated_at))}</td></tr>`;}).join('')}</tbody></table></div></div></td></tr>`;}
 
 function exportEmployeeStocks(){
   if(!window.XLSX){alert('Excel 导出组件加载失败，请刷新页面后重试');return;}
   const rows=buildRows();
-  const data=[['员工名字','员工号','商品名','条码','库存散数']];
+  const data=[['员工名字','员工号','规格口味','条码','库存散数']];
   rows.forEach(row=>row.items.forEach(item=>data.push([row.name||'',row.employee_code,item.product.title,String(item.product_barcode||''),item.qty])));
   const ws=XLSX.utils.aoa_to_sheet(data);
   ws['!cols']=[{wch:14},{wch:14},{wch:38},{wch:18},{wch:12}];
@@ -235,7 +236,7 @@ async function loadAll(){
   const[stockRes,empRes,productRes]=await Promise.all([
     client.from('van_stocks').select('employee_code, product_barcode, qty, updated_at').order('employee_code',{ascending:true}).limit(20000),
     client.from('employees').select('employee_code, name, is_active').limit(2000),
-    client.from('products').select('id, sort_order, barcode, name, brand, spec, flavor, pcs_per_case, pcs_per_box, unit, is_active').order('sort_order',{ascending:true}).order('id',{ascending:true}).limit(5000)
+    client.from('products').select('id, sort_order, barcode, brand, spec, flavor, pcs_per_case, pcs_per_box, unit, is_active').order('sort_order',{ascending:true}).order('id',{ascending:true}).limit(5000)
   ]);
   if(stockRes.error){setStatus('库存加载失败：'+stockRes.error.message,'error');return}
   if(empRes.error){setStatus('员工加载失败：'+empRes.error.message,'error');return}
