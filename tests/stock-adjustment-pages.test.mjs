@@ -11,17 +11,21 @@ const enhancements = fs.readFileSync(new URL('../stock-adjustment-admin-enhancem
 const stockSummary = fs.readFileSync(new URL('../stock_summary.html', import.meta.url), 'utf8');
 const dashboard = fs.readFileSync(new URL('../dashboard.html', import.meta.url), 'utf8');
 
-test('inventory management keeps all inventory tools together without zero-stock toggles', () => {
-  assert.match(stockSummary, /id="inventoryOverviewPanel"/);
-  assert.match(stockSummary, /id="inventoryReviewPanel"/);
-  assert.match(stockSummary, /id="inventoryMovementsPanel"/);
-  assert.match(stockSummary, /src="stock-adjustment-review"/);
-  assert.match(stockSummary, /src="inventory-movements"/);
-  assert.match(stockSummary, /function switchInventoryPanel\(/);
+test('inventory management links to separate review and movement pages without zero-stock toggles', () => {
+  assert.match(stockSummary, /class="inventory-tools"/);
+  assert.match(stockSummary, /href="stock-adjustment-review"/);
+  assert.match(stockSummary, /href="inventory-movements"/);
+  assert.doesNotMatch(stockSummary, /<iframe/);
+  assert.doesNotMatch(stockSummary, /switchInventoryPanel/);
   assert.doesNotMatch(stockSummary, /onlyNonZero/);
   assert.doesNotMatch(stockSummary, /toggleNonZero/);
   assert.doesNotMatch(stockSummary, /只看非零库存/);
   assert.doesNotMatch(stockSummary, /显示零库存行/);
+});
+
+test('review and movement pages return to inventory management', () => {
+  assert.match(reviewHtml, /location\.href='stock_summary'/);
+  assert.match(movementsHtml, /location\.href='stock_summary'/);
 });
 
 test('dashboard inventory management shows the pending review count as a notification badge', () => {
