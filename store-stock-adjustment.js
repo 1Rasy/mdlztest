@@ -142,13 +142,21 @@
     return '修改并重新提交';
   }
 
-  function requestBlock(title, list, editable, openByDefault) {
+  function historyItemsHtml(items) {
+    return (items || []).map(item => {
+      const quantity = Number(item.adjustment_qty) || 0;
+      const label = StockAdjustmentCore.formatSpecFlavor(item) || item.product_barcode;
+      return `<div class="stock-adjustment-history-line" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid #f0ebf1"><span>${esc(label)}</span><strong class="stock-adjustment-history-qty ${quantity > 0 ? 'qty-positive' : 'qty-negative'}" style="font-size:15px;color:${quantity > 0 ? '#16a34a' : '#dc2626'}">${quantity > 0 ? '+' : ''}${quantity}</strong></div>`;
+    }).join('');
+  }
+
+  function requestBlock(title, list, editable, openByDefault, history) {
     return `<details class="stock-adjustment-request-group"${openByDefault && list.length ? ' open' : ''}>
       <summary>${title}<span>${list.length}</span></summary>
       <div class="stock-adjustment-request-list">
         ${list.map(entry => `<div class="item stock-adjustment-request-item">
           <b>${esc(entry.request.request_no)} · ${esc(StockAdjustmentCore.statusLabel(entry.request.status))}</b>
-          <div class="sub">${(entry.items || []).map(item => `${esc(StockAdjustmentCore.formatSpecFlavor(item) || item.product_barcode)} ${Number(item.adjustment_qty) > 0 ? '增加' : '减少'} ${Math.abs(Number(item.adjustment_qty))}`).join('；')}${entry.request.rejection_reason ? `；驳回：${esc(entry.request.rejection_reason)}` : ''}</div>
+          ${history ? `<div class="stock-adjustment-history-items">${historyItemsHtml(entry.items)}</div>` : `<div class="sub">${(entry.items || []).map(item => `${esc(StockAdjustmentCore.formatSpecFlavor(item) || item.product_barcode)} ${Number(item.adjustment_qty) > 0 ? '增加' : '减少'} ${Math.abs(Number(item.adjustment_qty))}`).join('；')}${entry.request.rejection_reason ? `；驳回：${esc(entry.request.rejection_reason)}` : ''}</div>`}
           ${editable ? `<button class="smallbtn" onclick="editStockAdjustmentRequest('${esc(entry.request.id)}')">${requestActionLabel(entry.request.status)}</button>` : ''}
         </div>`).join('') || '<div class="sub stock-adjustment-request-empty">暂无记录</div>'}
       </div>
@@ -161,7 +169,7 @@
     return requestBlock('待审核申请', byStatus('pending_review'), true, true)
       + requestBlock('已驳回申请', byStatus('rejected'), true, true)
       + requestBlock('未提交草稿', byStatus('draft'), true, false)
-      + requestBlock('历史记录', byStatus('approved'), false, false)
+      + requestBlock('历史记录', byStatus('approved'), false, false, true)
       + requestBlock('已撤回申请', byStatus('withdrawn'), true, false);
   }
 

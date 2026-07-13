@@ -79,6 +79,19 @@ test('request sections are separated and placed above the product filters', () =
   assert.ok(renderBody.indexOf('stock-adjustment-request-panels') < renderBody.indexOf('stock-adjustment-filters'));
 });
 
+test('approved history lists spec flavor on separate lines with signed quantities', () => {
+  const historyStart = source.indexOf('function historyItemsHtml');
+  const historyEnd = source.indexOf('function requestBlock', historyStart);
+  const historyBody = source.slice(historyStart, historyEnd);
+  assert.match(historyBody, /StockAdjustmentCore\.formatSpecFlavor\(item\)/);
+  assert.doesNotMatch(historyBody, /item\.product_name/);
+  assert.match(historyBody, /stock-adjustment-history-line/);
+  assert.match(historyBody, /quantity > 0 \? '\+' : ''/);
+  assert.match(historyBody, /qty-positive/);
+  assert.match(historyBody, /qty-negative/);
+  assert.match(historyBody, /display:flex/);
+});
+
 test('reason is selected only when submitting and missed receipt is removed', () => {
   assert.match(source, /onclick="openStockAdjustmentSubmitDialog\(\)"/);
   assert.match(source, /id="stockAdjustmentSubmitMask"/);
