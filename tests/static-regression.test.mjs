@@ -67,12 +67,11 @@ assertIncludes(dashboard, '<th style="width:110px;">卖进门店数</th>', 'empl
 assertIncludes(dashboard, 'onclick="exportOrderExcel()"', 'dashboard should expose order export button');
 assertIncludes(dashboard, '导出开单单据', 'dashboard order export button should be visible');
 assertIncludes(dashboard, 'async function exportOrderExcel()', 'dashboard should implement async order item export');
-assertIncludes(dashboard, ".from('sales_order_items')", 'dashboard should export order item details');
-assertIncludes(dashboard, ".from('products')", 'dashboard should look up product names for export');
-assertIncludes(dashboard, "['开单日期', '员工', '员工号', '门店编号', '门店', '商品名', '条码', '价格', '散数']", 'dashboard order export should use item-level headers');
-assertIncludes(dashboard, "select('order_no, barcode, product_name, unit_price, qty')", 'dashboard item export should use real sales_order_items fields');
-assertIncludes(dashboard, ".in('order_no', orderNos)", 'dashboard item export should join by order_no');
-assertIncludes(dashboard, 'formatDateOnly(order.created_at)', 'dashboard order export should only include date precision');
+assertIncludes(dashboard, "client.rpc('get_dashboard_export_order_items'", 'dashboard should request export details through one backend query');
+assertIncludes(dashboard, 'p_start_at:start?start.toISOString():null', 'dashboard export should pass the selected start date to the backend');
+assertIncludes(dashboard, 'p_end_at:end?end.toISOString():null', 'dashboard export should pass the selected end date to the backend');
+assertIncludes(dashboard, "['开单日期','员工','员工号','门店编号','门店','商品名','条码','整数','整价','散数','散价','金额']", 'dashboard order export should use item-level headers');
+assertIncludes(dashboard, 'formatDateOnly(item.created_at)', 'dashboard order export should only include date precision');
 assertIncludes(dashboard, 'item.product_name || product?.name || barcode', 'dashboard order export should include product name');
 assertIncludes(dashboard, 'Number(item.unit_price || 0)', 'dashboard order export should include item unit_price');
 assertIncludes(dashboard, 'Number(item.qty || 0)', 'dashboard order export should include item loose quantity');

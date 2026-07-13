@@ -32,16 +32,18 @@ test('dashboard inventory management shows the pending review count as a notific
   assert.match(dashboard, /notification-badge/);
 });
 
-test('dashboard export reloads every page of the currently selected date range before creating Excel', () => {
-  assert.match(dashboard, /async function loadOrdersForExport\(\)/);
-  assert.match(dashboard, /async function loadOrderItemsForExport\(orderNos\)/);
-  assert.match(dashboard, /\.range\(from,from\+pageSize-1\)/);
-  assert.match(dashboard, /orders=await loadOrdersForExport\(\)/);
-  assert.match(dashboard, /items=await loadOrderItemsForExport\(orderNos\)/);
+test('dashboard export sends the selected date range to one backend query before creating Excel', () => {
+  assert.match(dashboard, /async function loadDashboardExportRows\(\)/);
+  assert.match(dashboard, /client\.rpc\('get_dashboard_export_order_items'/);
+  assert.match(dashboard, /p_start_at:start\?start\.toISOString\(\):null/);
+  assert.match(dashboard, /p_end_at:end\?end\.toISOString\(\):null/);
+  assert.match(dashboard, /sourceRows=await loadDashboardExportRows\(\)/);
   const exportStart = dashboard.indexOf('async function exportOrderExcel()');
   const exportEnd = dashboard.indexOf('async function loadDashboard()', exportStart);
   const exportBody = dashboard.slice(exportStart, exportEnd);
   assert.doesNotMatch(exportBody, /getFilteredOrders\(\)/);
+  assert.doesNotMatch(dashboard, /loadOrdersForExport/);
+  assert.doesNotMatch(dashboard, /loadOrderItemsForExport/);
 });
 
 test('admin review page uses an explicitly injected API client', () => {
