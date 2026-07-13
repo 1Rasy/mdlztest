@@ -8,6 +8,29 @@ const reviewHtml = fs.readFileSync(new URL('../stock-adjustment-review.html', im
 const movementsHtml = fs.readFileSync(new URL('../inventory-movements.html', import.meta.url), 'utf8');
 const styles = fs.readFileSync(new URL('../stock-adjustment.css', import.meta.url), 'utf8');
 const enhancements = fs.readFileSync(new URL('../stock-adjustment-admin-enhancements.css', import.meta.url), 'utf8');
+const stockSummary = fs.readFileSync(new URL('../stock_summary.html', import.meta.url), 'utf8');
+const dashboard = fs.readFileSync(new URL('../dashboard.html', import.meta.url), 'utf8');
+
+test('inventory management keeps all inventory tools together without zero-stock toggles', () => {
+  assert.match(stockSummary, /id="inventoryOverviewPanel"/);
+  assert.match(stockSummary, /id="inventoryReviewPanel"/);
+  assert.match(stockSummary, /id="inventoryMovementsPanel"/);
+  assert.match(stockSummary, /src="stock-adjustment-review"/);
+  assert.match(stockSummary, /src="inventory-movements"/);
+  assert.match(stockSummary, /function switchInventoryPanel\(/);
+  assert.doesNotMatch(stockSummary, /onlyNonZero/);
+  assert.doesNotMatch(stockSummary, /toggleNonZero/);
+  assert.doesNotMatch(stockSummary, /只看非零库存/);
+  assert.doesNotMatch(stockSummary, /显示零库存行/);
+});
+
+test('dashboard inventory management shows the pending review count as a notification badge', () => {
+  assert.match(dashboard, /id="inventoryManagementCard"/);
+  assert.match(dashboard, /id="pendingStockAdjustmentBadge"/);
+  assert.match(dashboard, /get_pending_stock_adjustment_requests/);
+  assert.match(dashboard, /function loadPendingStockAdjustmentBadge\(/);
+  assert.match(dashboard, /notification-badge/);
+});
 
 test('admin review page uses an explicitly injected API client', () => {
   assert.match(review, /StockAdjustmentApi\.create\(client\)/);
