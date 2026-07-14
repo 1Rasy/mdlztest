@@ -63,7 +63,7 @@ tr.clickable:hover { background:#fbf9fc; }
     <div class="top">
       <div>
         <h1>库存管理</h1>
-        <div class="sub">当前库存只由订单计算：以 2026-07-01 00:00 为零库存起点，汇总该时间之后的全部订单销量并显示为负数。7月1日前订单仅作历史查看；经销商原始出库导入不参与库存。</div>
+        <div class="sub">库存按 2026-07-01 及之后的全部订单计算；员工 S260401018 另外保留清理前的68条原库存作为期初库存，再扣除7月1日起的销量。其他员工以零库存起算。7月1日前订单仅作历史查看；经销商原始出库导入不参与库存。</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn" onclick="location.href='dashboard.html'">返回管理看板</button>
@@ -141,7 +141,7 @@ function buildRows() {
 function renderMetrics(rows) {
   const totalEmployees = new Set(stocks.map(st => String(st.employee_code || '')).filter(Boolean)).size;
   const totalQty = stocks.reduce((sum,st) => sum + num(st.qty),0);
-  document.getElementById('metricGrid').innerHTML = `<div class="metric"><div class="label">参与库存员工</div><div class="value">${totalEmployees}</div><div class="hint">当前筛选显示 ${rows.length} 人</div></div><div class="metric"><div class="label">7月1日后订单累计库存</div><div class="value">${qty(totalQty)}</div><div class="hint">零基准减去全部订单销量</div></div>`;
+  document.getElementById('metricGrid').innerHTML = `<div class="metric"><div class="label">参与库存员工</div><div class="value">${totalEmployees}</div><div class="hint">当前筛选显示 ${rows.length} 人</div></div><div class="metric"><div class="label">当前库存合计</div><div class="value">${qty(totalQty)}</div><div class="hint">S260401018保留原库存，其余员工零库存起算</div></div>`;
 }
 
 function renderEmployeeRows(rows) {
