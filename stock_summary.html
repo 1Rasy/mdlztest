@@ -63,12 +63,14 @@ tr.clickable:hover { background:#fbf9fc; }
     <div class="top">
       <div>
         <h1>库存管理</h1>
-        <div class="sub">库存按 2026-07-01 及之后的全部订单计算；员工 S260401018 另外保留清理前的68条原库存作为期初库存，再扣除7月1日起的销量。其他员工以零库存起算。7月1日前订单仅作历史查看；经销商原始出库导入不参与库存。</div>
+        <div class="sub">导入格式：A列员工编号，B列条码，C列库存散数。导入数据作为 2026-07-01 期初库存，再扣除7月1日至今的全部订单销量。未导入员工以零库存起算；S260401018 未包含在文件时继续保留清理前的68条原库存。</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn" onclick="location.href='dashboard.html'">返回管理看板</button>
+        <button class="btn" onclick="openImportFile()">导入7月1日期初库存</button>
         <button class="btn" onclick="exportEmployeeStocks()">导出</button>
         <button class="btn primary" onclick="loadAll()">刷新</button>
+        <input id="stockImportFile" type="file" accept=".xlsx,.xls" style="display:none" onchange="importStockExcel(event)">
       </div>
     </div>
     <div class="filters">
@@ -97,6 +99,7 @@ tr.clickable:hover { background:#fbf9fc; }
 <script>
 const SUPABASE_URL = "https://wyjbnnqhiehjccmojbbg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_WwTC7079N2e8ZQwPKUj-Gw_ewFiviFG";
+const INVENTORY_BASELINE_ID = '2026-07-01-opening';
 const INVENTORY_CUTOFF = '2026-07-01T00:00:00+08:00';
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let employees = [], products = [], stocks = [], employeeMap = new Map(), productMap = new Map(), expandedEmployee = '';
@@ -141,7 +144,7 @@ function buildRows() {
 function renderMetrics(rows) {
   const totalEmployees = new Set(stocks.map(st => String(st.employee_code || '')).filter(Boolean)).size;
   const totalQty = stocks.reduce((sum,st) => sum + num(st.qty),0);
-  document.getElementById('metricGrid').innerHTML = `<div class="metric"><div class="label">参与库存员工</div><div class="value">${totalEmployees}</div><div class="hint">当前筛选显示 ${rows.length} 人</div></div><div class="metric"><div class="label">当前库存合计</div><div class="value">${qty(totalQty)}</div><div class="hint">S260401018保留原库存，其余员工零库存起算</div></div>`;
+  document.getElementById('metricGrid').innerHTML = `<div class="metric"><div class="label">参与库存员工</div><div class="value">${totalEmployees}</div><div class="hint">当前筛选显示 ${rows.length} 人</div></div><div class="metric"><div class="label">当前库存合计</div><div class="value">${qty(totalQty)}</div><div class="hint">期初库存减去7月1日至今全部订单</div></div>`;
 }
 
 function renderEmployeeRows(rows) {
@@ -168,6 +171,125 @@ function exportEmployeeStocks() {
   XLSX.utils.book_append_sheet(wb,ws,'库存管理');
   const stamp = new Date().toISOString().slice(0,10);
   XLSX.writeFile(wb, `库存管理_${stamp}.xlsx`);
+}
+
+function openImportFile() {
+  const input = document.getElementById('stockImportFile');
+  if(input) { input.value = ''; input.click(); }
+}
+function normalizeImportText(v) { return String(v ?? '').replace(/\u00a0/g,' ').trim(); }
+function normalizeImportCode(v) { const text = normalizeImportText(v); return /^\d+\.0$/.test(text) ? text.replace(/\.0$/,'') : text; }
+function parseImportQty(v) { const text = normalizeImportText(v).replace(/,/g,''); if(text === '') return NaN; return Number(text); }
+function splitChunks(arr,size=500) { const chunks=[]; for(let i=0;i<arr.length;i+=size) chunks.push(arr.slice(i,i+size)); return chunks; }
+
+async function fetchExistingValues(table,column,values) {
+  const result = new Set();
+  const list = Array.from(new Set(values.map(v => String(v || '')).filter(Boolean)));
+  for(const part of splitChunks(list,500)) {
+    const res = await client.from(table).select(column).in(column,part);
+    if(res.error) throw res.error;
+    (res.data || []).forEach(row => result.add(String(row[column] || '')));
+  }
+  return result;
+}
+
+function parseStockImportRows(ws) {
+  const rows = XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+  const parsed=[],errors=[];
+  rows.forEach((row,idx) => {
+    const line = idx+1;
+    const employeeCode = normalizeImportCode(row[0]);
+    const barcode = normalizeImportCode(row[1]);
+    const qtyValue = parseImportQty(row[2]);
+    const isBlank = !employeeCode && !barcode && !normalizeImportText(row[2]);
+    if(isBlank) return;
+    const looksLikeHeader = line === 1 && /员工|employee/i.test(employeeCode) && /条码|barcode/i.test(barcode);
+    if(looksLikeHeader) return;
+    if(!employeeCode || !barcode || !Number.isFinite(qtyValue) || !Number.isInteger(qtyValue)) {
+      errors.push(`第 ${line} 行格式错误：A列员工编号、B列条码、C列整数散数都不能为空`);
+      return;
+    }
+    parsed.push({line,employee_code:employeeCode,product_barcode:barcode,qty:qtyValue});
+  });
+  return {parsed,errors};
+}
+
+async function importStockExcel(event) {
+  const input = event?.target;
+  const file = input?.files?.[0];
+  if(!file) return;
+  if(!window.XLSX) { alert('Excel 组件加载失败，请刷新页面后重试'); return; }
+  try {
+    setStatus('正在读取 Excel...');
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer,{type:'array',cellDates:false});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    if(!ws) { alert('Excel 中没有可读取的工作表'); return; }
+    const {parsed,errors} = parseStockImportRows(ws);
+    if(errors.length) {
+      alert(`导入失败，共 ${errors.length} 行格式错误。\n\n` + errors.slice(0,12).join('\n'));
+      setStatus('导入已取消：Excel 格式有错误','error');
+      return;
+    }
+    if(!parsed.length) {
+      alert('没有读取到库存数据。请确认 A列员工编号、B列条码、C列散数。');
+      setStatus('没有读取到库存数据','error');
+      return;
+    }
+
+    setStatus(`正在校验 ${parsed.length} 行库存...`);
+    const employeeCodes = parsed.map(r => r.employee_code);
+    const barcodes = parsed.map(r => r.product_barcode);
+    const [validEmployees,validProducts] = await Promise.all([
+      fetchExistingValues('employees','employee_code',employeeCodes),
+      fetchExistingValues('products','barcode',barcodes)
+    ]);
+    const missingEmployees = Array.from(new Set(employeeCodes.filter(code => !validEmployees.has(String(code)))));
+    const missingProducts = Array.from(new Set(barcodes.filter(code => !validProducts.has(String(code)))));
+    if(missingEmployees.length || missingProducts.length) {
+      const parts=[];
+      if(missingEmployees.length) parts.push(`员工编号不存在：${missingEmployees.slice(0,20).join('、')}${missingEmployees.length>20?' 等':''}`);
+      if(missingProducts.length) parts.push(`商品条码不存在：${missingProducts.slice(0,20).join('、')}${missingProducts.length>20?' 等':''}`);
+      alert('导入失败：\n' + parts.join('\n'));
+      setStatus('导入已取消：存在员工编号或条码未建档','error');
+      return;
+    }
+
+    const merged = new Map();
+    let duplicateCount = 0;
+    parsed.forEach(row => {
+      const key = row.employee_code + '|' + row.product_barcode;
+      if(merged.has(key)) duplicateCount += 1;
+      merged.set(key,{employee_code:row.employee_code,product_barcode:row.product_barcode,qty:row.qty});
+    });
+    const rowsToSave = Array.from(merged.values());
+    const affectedEmployees = new Set(rowsToSave.map(r => r.employee_code)).size;
+    const includesPreservedEmployee = rowsToSave.some(r => String(r.employee_code).toLowerCase() === 's260401018');
+    const specialNote = includesPreservedEmployee
+      ? '\n\n文件包含 S260401018：他的原68条保留库存会由本文件中的期初库存替换。'
+      : '\n\n文件未包含 S260401018：他的原68条保留库存保持不变。';
+    const confirmed = confirm(`将导入 ${rowsToSave.length} 条 2026-07-01 期初库存，涉及 ${affectedEmployees} 名员工。\n\n系统会替换这些员工的期初库存，并自动减去 2026-07-01 及之后的全部订单销量。${specialNote}\n\n确认继续吗？`);
+    if(!confirmed) { setStatus('已取消导入'); return; }
+
+    setStatus('正在保存期初库存并按7月1日后全部订单重算...');
+    const res = await client.rpc('import_van_stock_baseline',{
+      p_baseline_id:INVENTORY_BASELINE_ID,
+      p_rows:rowsToSave,
+      p_cutoff:INVENTORY_CUTOFF
+    });
+    if(res.error) throw res.error;
+
+    await loadAll();
+    const negativeCount = rowsToSave.filter(r => r.qty<0).length;
+    const result = res.data || {};
+    setStatus(`导入完成：期初库存 ${result.imported_baseline_rows ?? rowsToSave.length} 条，重算库存 ${result.written_stock_rows ?? '-'} 条，涉及 ${result.employees ?? affectedEmployees} 名员工${negativeCount?`，负数期初库存 ${negativeCount} 条`:''}${duplicateCount?`，重复行按最后一行覆盖 ${duplicateCount} 条`:''}。`);
+  } catch(err) {
+    console.error(err);
+    setStatus('库存导入失败：' + (err?.message || err),'error');
+    alert('库存导入失败：' + (err?.message || err));
+  } finally {
+    if(input) input.value = '';
+  }
 }
 
 function renderAll() { const rows = buildRows(); renderMetrics(rows); renderEmployeeRows(rows); hideStatus(); }
