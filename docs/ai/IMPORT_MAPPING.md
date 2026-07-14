@@ -127,6 +127,21 @@ stock_jn.html
 - 保留单号、日期、客户编号、客户名称、条码、商品名、包装、数量。
 - 通过 raw 表触发库存同步。
 
+### 4.4 吉能入库散数公式
+
+吉能导入的库存散数必须按商品主数据计算，不能直接把 Excel 的 I 列作为箱规：
+
+```text
+入库散数 = J 列（件） * products.pcs_per_case
+        + L 列（散） * products.pcs_per_case / I 列（包装）
+```
+
+- J 列：件数。
+- I 列：包装数，用于把 L 列散数换算为最小库存单位。
+- L 列：散数。
+- 条码必须先匹配 `products.barcode`，并使用该条码对应的 `products.pcs_per_case`。
+- `products.pcs_per_case` 或 I 列包装数无效时，不得增加 `van_stocks`。
+
 ---
 
 ## 5. 长涛 stock_ct 映射
@@ -180,17 +195,17 @@ G = qty_scatter
 D = package_reg
 ```
 
-推荐统一数量计算：
+长涛入库散数计算：
 
 ```text
-qty = qty_piece * package_reg + qty_scatter
+入库散数 = F 列（件） * D 列（包装） + G 列（散）
 ```
 
 注意：
 
 - `qty_piece` 为空时按 0。
 - `qty_scatter` 为空时按 0。
-- `package_reg` 为空或 <= 0 时，后续库存处理应按产品表 `pcs_per_case` 回填。
+- D 列 `package_reg` 为空或 <= 0 时，不得增加 `van_stocks`。
 - 如果当前 `raw_dealer_outbounds.qty` 存的是箱数而不是最小单位，必须先核对旧逻辑，不要直接替换。
 
 ### 5.5 product_name
@@ -239,7 +254,7 @@ raw_dealer_outbounds.customer_code
 未能在 dealer_employee_mappings.customer_code 找到 employee_code
 ```
 
-这些记录不应进入业务员库存。
+这些记录不得写入 `raw_dealer_outbounds`，也不得进入业务员库存。
 
 ### 7.2 未匹配商品
 
