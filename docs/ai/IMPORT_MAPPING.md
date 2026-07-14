@@ -141,6 +141,7 @@ stock_jn.html
 - L 列：散数。
 - 条码必须先匹配 `products.barcode`，并使用该条码对应的 `products.pcs_per_case`。
 - `products.pcs_per_case` 或 I 列包装数无效时，不得增加 `van_stocks`。
+- 每条成功入库的吉能记录必须同步写入 `inventory_movements`，`movement_type` 固定为 `erp_import`，并记录导入前库存、入库散数和导入后库存。
 
 ---
 
@@ -206,6 +207,7 @@ D = package_reg
 - `qty_piece` 为空时按 0。
 - `qty_scatter` 为空时按 0。
 - D 列 `package_reg` 为空或 <= 0 时，不得增加 `van_stocks`。
+- 每条成功入库的长涛记录必须同步写入 `inventory_movements`，`movement_type` 固定为 `erp_import`，并记录导入前库存、入库散数和导入后库存。
 - 如果当前 `raw_dealer_outbounds.qty` 存的是箱数而不是最小单位，必须先核对旧逻辑，不要直接替换。
 
 ### 5.5 product_name
