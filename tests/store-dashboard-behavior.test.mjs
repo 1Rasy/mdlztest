@@ -31,8 +31,11 @@ assert.ok(storeApp.includes('order-date-action'), 'order date edit button should
 assert.ok(storeApp.includes('pack-hint'), 'order pack deduction hint should use a separated hint style');
 
 assert.ok(dashboard.includes('function renderTrendLine'), 'dashboard should render trend as a line chart helper');
+assert.ok(dashboard.includes("currentRange='7d';syncRangeButtons(currentRange);"), 'dashboard should default to the recent seven-day range');
 assert.ok(dashboard.includes('const g=new Map();orders.forEach'), 'dashboard trend should keep existing date aggregation logic');
 assert.ok(dashboard.includes('<polyline'), 'dashboard trend should use an SVG polyline');
+assert.ok(dashboard.includes('function formatTrendDate') && dashboard.includes("Number(parts[1])+'.'+String(Number(parts[2])).padStart(2,'0')"), 'dashboard trend labels should use M.DD format');
+assert.ok(dashboard.includes('.trend-axis{display:flex;justify-content:space-between'), 'dashboard trend labels should use evenly spaced visible labels');
 assert.ok(!dashboard.includes('background:var(--primary);border-radius:8px 8px 2px 2px'), 'dashboard trend should no longer render bar columns');
 assert.ok(dashboard.includes('customRangeText') && dashboard.includes('dateRangePanel'), 'dashboard date filter should use one range input with a picker panel');
 assert.ok(!dashboard.includes('customStartDate') && !dashboard.includes('customEndDate'), 'dashboard date filter should not expose two separate date inputs');

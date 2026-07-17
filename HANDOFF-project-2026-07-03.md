@@ -136,11 +136,11 @@ Supabase 项目：`wyjbnnqhiehjccmojbbg`
 
 `dashboard.html` 当前职责：
 
-- 默认按“本日”加载 `sales_orders`，最多取 2000 条。
+- 默认按“近 7 天”加载 `sales_orders`，最多取 2000 条。
 - 支持“本日 / 昨日 / 近 7 天 / 本月 / 全部历史 / 自定义范围”。
 - 自定义范围是一个输入入口 `customRangeText`，点击展开 `dateRangePanel` 双月日历。反向选择通过 `normalizeCustomDateRange()` 归一化。
 - 员工筛选是 chips，点击后只影响当前已加载订单的聚合展示。
-- 趋势图使用 SVG polyline，保护圆点不被非等比缩放。
+- 趋势图使用 SVG polyline，保护圆点不被非等比缩放；横轴最多显示 5 个完整标签，日期格式为 `7.01`。
 - 导出使用 `xlsx-js-style`，文件名来自当前日期范围 `getExportFileName()`。
 
 导出规则：
