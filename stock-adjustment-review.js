@@ -35,8 +35,8 @@
     const requests = Array.isArray(rows) ? rows : [];
     const itemCount = requests.reduce((sum, entry) => sum + (Array.isArray(entry.items) ? entry.items.length : 0), 0);
     $('reviewMetrics').innerHTML = `
-      <div class="metric"><div class="metric-label">待审核申请</div><div class="metric-value">${requests.length}</div><div class="metric-hint">按提交时间从早到晚排列</div></div>
-      <div class="metric"><div class="metric-label">待审核商品行</div><div class="metric-value">${itemCount}</div><div class="metric-hint">库存以审核当下实时数量为准</div></div>`;
+      <div class="metric"><div class="metric-label">待审核申请</div><div class="metric-value">${requests.length}</div></div>
+      <div class="metric"><div class="metric-label">待审核商品行</div><div class="metric-value">${itemCount}</div></div>`;
     $('reviewStatus').textContent = `${requests.length} 个申请`;
   }
 
