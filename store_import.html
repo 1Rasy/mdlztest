@@ -5,25 +5,30 @@
   <title>门店导入</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <style>
-    :root { --primary:#4A154B; --bg-main:#f8f9fa; --text-main:#212529; --card-bg:#ffffff; --border-color:#dee2e6; --ok:#2e7d32; --danger:#b91c1c; }
-    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding:40px 20px; background:var(--bg-main); color:var(--text-main); }
-    .container { max-width:720px; margin:40px auto; }
-    .card { background:var(--card-bg); padding:35px; border-radius:8px; border:1px solid var(--border-color); box-shadow:0 4px 12px rgba(0,0,0,0.03); }
-    h2 { margin-top:0; margin-bottom:25px; color:var(--text-main); font-size:18px; font-weight:600; border-bottom:2px solid var(--primary); padding-bottom:10px; }
-    .upload-box { border:1px dashed var(--border-color); background:#fff; padding:45px 20px; border-radius:6px; cursor:pointer; text-align:center; transition:all .15s ease-in-out; position:relative; }
-    .upload-box.dragover { border-color:var(--primary)!important; background:#fdfafd!important; }
-    .upload-box:hover { border-color: var(--primary); }
+    :root { --primary:#4A154B; --bg-main:#f4f2f5; --text-main:#1f1121; --card-bg:#ffffff; --border-color:#e7e1e8; --ok:#2e7d32; --danger:#dc2626; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; padding:16px; background:var(--bg-main); color:var(--text-main); }
+    .container { max-width:1120px; margin:0 auto; }
+    .back { display:inline-block; margin:0 0 12px; border:1px solid var(--border-color); background:#fff; color:var(--text-main); border-radius:9px; padding:9px 12px; font-size:14px; font-weight:700; text-decoration:none; }
+    .page-title { margin:0 0 8px; color:var(--primary); font-size:26px; }
+    .card { max-width:553px; background:var(--card-bg); padding:16px; border:0; border-radius:14px; box-shadow:0 4px 14px rgba(74,21,75,.06); }
+    h2 { display:none; }
+    .upload-box { border:1px dashed var(--border-color); background:#fff; padding:45px 20px; border-radius:12px; cursor:pointer; text-align:center; transition:all .15s ease-in-out; position:relative; }
+    .upload-box.dragover { border-color:var(--primary)!important; background:#fbf9fc!important; }
+    .upload-box:hover { border-color: var(--primary); background:#fbf9fc; }
     .file-input { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
-    .btn-submit { margin-top:20px; width:100%; background:var(--primary); color:#fff; border:none; padding:12px; border-radius:4px; font-size:14px; font-weight:600; cursor:pointer; transition:background .15s; }
+    .btn-submit { margin-top:14px; width:100%; background:var(--primary); color:#fff; border:1px solid var(--primary); padding:13px; border-radius:9px; font-size:15px; font-weight:700; cursor:pointer; transition:background .15s; }
     .btn-submit:hover { background:#360f37; }
     .btn-submit:disabled { background:#ced4da; cursor:not-allowed; }
-    .status { margin-top:15px; font-size:13px; font-weight:600; color:var(--primary); text-align:center; min-height:20px; white-space:pre-line; line-height:1.6; }
+    .status { margin-top:15px; font-size:13px; font-weight:700; color:var(--primary); text-align:center; min-height:20px; white-space:pre-line; line-height:1.6; }
     .error { color:var(--danger); }
+    @media(max-width:700px){ body{padding:12px} .page-title{font-size:23px} .card{max-width:none} }
   </style>
 </head>
 <body>
 
 <div class="container">
+  <a class="back" href="dashboard.html">← 返回管理后台</a>
+  <h1 class="page-title">门店导入</h1>
   <div class="card">
     <h2>门店导入</h2>
 
