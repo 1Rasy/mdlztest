@@ -36,6 +36,9 @@ assert.ok(dashboard.includes('const g=new Map();orders.forEach'), 'dashboard tre
 assert.ok(dashboard.includes('<polyline'), 'dashboard trend should use an SVG polyline');
 assert.ok(dashboard.includes('function formatTrendDate') && dashboard.includes("Number(parts[1])+'.'+String(Number(parts[2])).padStart(2,'0')"), 'dashboard trend labels should use M.DD format');
 assert.ok(dashboard.includes('.trend-axis{display:flex;justify-content:space-between'), 'dashboard trend labels should use evenly spaced visible labels');
+assert.ok(dashboard.includes("Array.from({length:7}") && dashboard.includes("currentRange!=='7d'"), 'seven-day trend should include every day in the range');
+assert.ok(dashboard.includes("const labelStep=labelAll?1") && dashboard.includes("currentRange==='7d'"), 'seven-day trend should show all seven date labels');
+assert.ok(dashboard.includes('const highLabel=') && dashboard.includes("values.filter(v=>v>0)"), 'trend should show high and non-zero low amounts');
 assert.ok(!dashboard.includes('background:var(--primary);border-radius:8px 8px 2px 2px'), 'dashboard trend should no longer render bar columns');
 assert.ok(dashboard.includes('customRangeText') && dashboard.includes('dateRangePanel'), 'dashboard date filter should use one range input with a picker panel');
 assert.ok(!dashboard.includes('customStartDate') && !dashboard.includes('customEndDate'), 'dashboard date filter should not expose two separate date inputs');
