@@ -39,6 +39,7 @@ assert.ok(dashboard.includes('.trend-axis{display:flex;justify-content:space-bet
 assert.ok(dashboard.includes("Array.from({length:7}") && dashboard.includes("currentRange!=='7d'"), 'seven-day trend should include every day in the range');
 assert.ok(dashboard.includes("const labelStep=labelAll?1") && dashboard.includes("currentRange==='7d'"), 'seven-day trend should show all seven date labels');
 assert.ok(dashboard.includes('const highLabel=') && dashboard.includes("values.filter(v=>v>0)"), 'trend should show high and non-zero low amounts');
+assert.ok(dashboard.includes("padY=46,padBottom=38") && dashboard.includes("const highLabel='¥ '+money(max),lowLabel="), 'trend amount labels should be separated from the line without high-low wording');
 assert.ok(!dashboard.includes('background:var(--primary);border-radius:8px 8px 2px 2px'), 'dashboard trend should no longer render bar columns');
 assert.ok(dashboard.includes('customRangeText') && dashboard.includes('dateRangePanel'), 'dashboard date filter should use one range input with a picker panel');
 assert.ok(!dashboard.includes('customStartDate') && !dashboard.includes('customEndDate'), 'dashboard date filter should not expose two separate date inputs');
